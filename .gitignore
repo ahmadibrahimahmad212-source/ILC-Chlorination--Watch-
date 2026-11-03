@@ -1,0 +1,10 @@
+node_modules/
+.vercel/
+.DS_Store
+*.log
+
+# never commit real programme data
+*.csv
+data/
+exports/
+!ILC-Kobo-Form-FRC-Monitoring.xlsx

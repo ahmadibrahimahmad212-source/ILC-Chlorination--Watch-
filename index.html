@@ -1,0 +1,2082 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Inline chlorination monitoring for Borno State: upload a KoboToolbox export to chart free residual chlorine at water points and in stored household water, and raise the alerts.">
+<meta name="color-scheme" content="light dark">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Chlorination Watch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky command bar over a filter rail, then one scrolling panel per tab.
+   Status colour carries severity; every badge also carries its word. */
+:root{
+  --plane:#f2f5f5; --surface:#fcfdfd; --raise:#ffffff;
+  --ink:#0d1a1e; --ink-2:#44585e; --ink-3:#7b8e94;
+  --rule:#dde5e5; --rule-2:#c3d2d2;
+  --brand:#0b3742; --brand-2:#1b7488; --brand-ink:#ffffff;
+  --ok:#0ca30c; --watch:#fab219; --high:#ec835a; --crit:#d03b3b;
+  --ok-ink:#046104; --watch-ink:#6b4a00; --high-ink:#8a3c18; --crit-ink:#8f1f1f;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --grid:#e1e8e8; --axis:#c3d2d2;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:10px; --shadow:0 1px 2px rgba(13,26,30,.06),0 4px 14px rgba(13,26,30,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --plane:#0b1113; --surface:#131c1f; --raise:#182327;
+  --ink:#e9efef; --ink-2:#a7bcc0; --ink-3:#73898e;
+  --rule:#243135; --rule-2:#324347;
+  --brand:#8fd3e2; --brand-2:#5fb9cd; --brand-ink:#06232b;
+  --ok-ink:#5ed35e; --watch-ink:#f6c861; --high-ink:#f0a481; --crit-ink:#ef7f7f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --grid:#223033; --axis:#324347;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --plane:#0b1113; --surface:#131c1f; --raise:#182327;
+  --ink:#e9efef; --ink-2:#a7bcc0; --ink-3:#73898e;
+  --rule:#243135; --rule-2:#324347;
+  --brand:#8fd3e2; --brand-2:#5fb9cd; --brand-ink:#06232b;
+  --ok-ink:#5ed35e; --watch-ink:#f6c861; --high-ink:#f0a481; --crit-ink:#ef7f7f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --grid:#223033; --axis:#324347;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{background:var(--plane);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);
+  z-index:40;background:var(--surface)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  max-width:1280px;margin:0 auto}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--brand-2);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── command bar ───────────────────────────────────────────────── */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+  background:var(--surface);border-bottom:1px solid var(--rule)}
+.bar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:12px}
+.mark{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.mark-d{width:30px;height:30px;border-radius:8px;background:var(--brand);
+  display:grid;place-items:center;flex:none}
+.mark-d svg{width:17px;height:17px;display:block}
+.mark h1{font-size:15px;line-height:1.2}
+.mark p{margin:1px 0 0;font-size:11.5px;color:var(--ink-3);
+  font-family:var(--mono);letter-spacing:.01em}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule-2);
+  background:var(--raise);padding:7px 12px;border-radius:8px;font-size:13px;
+  font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--brand-2)}
+.btn-p{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn-p:hover{opacity:.9;border-color:var(--brand)}
+.btn svg{width:15px;height:15px;flex:none}
+
+/* ── filter rail ───────────────────────────────────────────────── */
+.rail{background:var(--surface);border-bottom:1px solid var(--rule)}
+.rail-in{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding-block:10px}
+.fg{display:flex;align-items:center;gap:7px;min-width:0}
+.fg>span{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);white-space:nowrap}
+.seg{display:flex;border:1px solid var(--rule-2);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--raise);padding:5px 10px;font-size:12.5px;
+  border-right:1px solid var(--rule-2);color:var(--ink-2)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);font-weight:600}
+select{border:1px solid var(--rule-2);background:var(--raise);color:var(--ink);
+  padding:5px 8px;border-radius:7px;font:inherit;font-size:12.5px;max-width:220px}
+.asof{margin-left:auto;font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+
+/* ── tabs ──────────────────────────────────────────────────────── */
+.tabs{background:var(--surface);border-bottom:1px solid var(--rule);
+  overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabs-in{display:flex;gap:2px;min-width:max-content}
+.tab{border:0;background:none;padding:11px 13px 9px;font-size:13.5px;font-weight:500;
+  color:var(--ink-3);border-bottom:2px solid transparent;white-space:nowrap;
+  display:flex;align-items:center;gap:7px}
+.tab:hover{color:var(--ink-2)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--brand-2);font-weight:600}
+.tab .cnt{font-family:var(--mono);font-size:11px;padding:1px 5px;border-radius:5px;
+  background:var(--plane);color:var(--ink-2)}
+.tab .cnt.hot{background:var(--crit);color:#fff}
+
+/* ── banner ────────────────────────────────────────────────────── */
+.banner{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border-radius:var(--r);
+  border:1px solid;margin-block:14px;font-size:13px}
+.banner svg{width:17px;height:17px;flex:none;margin-top:1px}
+.banner b{display:block;margin-bottom:1px}
+.banner.samp{background:color-mix(in srgb,var(--watch) 13%,var(--surface));
+  border-color:color-mix(in srgb,var(--watch) 45%,var(--rule));color:var(--watch-ink)}
+.banner.info{background:var(--surface);border-color:var(--rule);color:var(--ink-2)}
+.banner button{margin-left:auto;flex:none}
+
+/* ── panels & cards ────────────────────────────────────────────── */
+main{padding-block:0 48px}
+.panel[hidden]{display:none!important}
+.sect{margin-top:22px}
+.sect-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sect-h h2{font-size:15px}
+.sect-h p{margin:0;font-size:12.5px;color:var(--ink-3)}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);
+  padding:15px;box-shadow:var(--shadow);min-width:0}
+.grid{display:grid;gap:12px}
+.g-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:700px){.g-kpi{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.g-2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+
+/* ── KPI tiles ─────────────────────────────────────────────────── */
+.kpi{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);
+  padding:13px 14px;display:flex;flex-direction:column;gap:3px;min-width:0;
+  border-left:3px solid var(--rule-2)}
+.kpi.ok{border-left-color:var(--ok)} .kpi.watch{border-left-color:var(--watch)}
+.kpi.high{border-left-color:var(--high)} .kpi.crit{border-left-color:var(--crit)}
+.kpi dt{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-3);margin:0;min-height:2.3em}
+.kpi dd{margin:0;font-size:27px;font-weight:600;line-height:1.1;letter-spacing:-.02em}
+.kpi dd small{font-size:14px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.kpi .sub{font-size:12px;color:var(--ink-2)}
+
+/* ── badges ────────────────────────────────────────────────────── */
+.bdg{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 6px;
+  border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap;
+  border:1px solid}
+.bdg i{width:7px;height:7px;border-radius:50%;flex:none;display:block}
+.bdg.ok{color:var(--ok-ink);border-color:color-mix(in srgb,var(--ok) 42%,transparent);
+  background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+.bdg.ok i{background:var(--ok)}
+.bdg.watch{color:var(--watch-ink);border-color:color-mix(in srgb,var(--watch) 48%,transparent);
+  background:color-mix(in srgb,var(--watch) 15%,var(--surface))}
+.bdg.watch i{background:var(--watch)}
+.bdg.high{color:var(--high-ink);border-color:color-mix(in srgb,var(--high) 48%,transparent);
+  background:color-mix(in srgb,var(--high) 15%,var(--surface))}
+.bdg.high i{background:var(--high)}
+.bdg.crit{color:var(--crit-ink);border-color:color-mix(in srgb,var(--crit) 48%,transparent);
+  background:color-mix(in srgb,var(--crit) 13%,var(--surface))}
+.bdg.crit i{background:var(--crit)}
+.bdg.mute{color:var(--ink-3);border-color:var(--rule);background:var(--plane)}
+.bdg.mute i{background:var(--ink-3)}
+
+/* ── tables ────────────────────────────────────────────────────── */
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:var(--r);
+  background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:580px}
+th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--rule);
+  vertical-align:middle}
+th{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);background:var(--surface);position:sticky;top:0;z-index:1;
+  border-bottom:1px solid var(--rule-2);white-space:nowrap}
+th.s{cursor:pointer;user-select:none}
+th.s:hover{color:var(--ink)}
+th.s::after{content:"";opacity:.4;margin-left:4px}
+th.s[data-dir="a"]::after{content:"\2191";opacity:1}
+th.s[data-dir="d"]::after{content:"\2193";opacity:1}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:color-mix(in srgb,var(--brand-2) 5%,var(--surface))}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+td.c{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap}
+.nm{font-weight:500}
+.nm span{display:block;font-size:11.5px;color:var(--ink-3);font-weight:400}
+
+/* ── alerts ────────────────────────────────────────────────────── */
+.alist{display:flex;flex-direction:column;gap:9px}
+.al{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);
+  padding:12px 14px;display:grid;grid-template-columns:4px 1fr auto;gap:0 13px;
+  align-items:start;overflow:hidden;position:relative}
+.al::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px}
+.al.crit::before{background:var(--crit)} .al.high::before{background:var(--high)}
+.al.watch::before{background:var(--watch)}
+.al>.sp{grid-column:1}
+.al-b{grid-column:2;min-width:0}
+.al-b h3{font-size:13.5px;margin-bottom:3px}
+.al-b p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.al-m{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:center}
+.al-m .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+  max-width:34ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.al-m .c.dt::before{content:"\00b7";margin-right:6px;color:var(--rule-2)}
+.al-a{grid-column:3;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.lane{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 6px;border-radius:4px;background:var(--plane);color:var(--ink-3)}
+.lane.health{background:color-mix(in srgb,var(--crit) 14%,var(--surface));color:var(--crit-ink)}
+
+/* ── message box ───────────────────────────────────────────────── */
+.msg{font-family:var(--mono);font-size:12px;line-height:1.65;white-space:pre-wrap;
+  word-break:break-word;background:var(--plane);border:1px solid var(--rule);
+  border-radius:8px;padding:12px;max-height:320px;overflow:auto;color:var(--ink-2);
+  user-select:all}
+
+/* ── charts ────────────────────────────────────────────────────── */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text:not([fill]){fill:var(--ink-3)}
+.chart text{font-family:var(--sans)}
+.lgd{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:var(--ink-2)}
+.lgd span{display:flex;align-items:center;gap:6px}
+.lgd i{width:11px;height:11px;border-radius:3px;display:block;flex:none}
+.lgd i.ln{height:3px;border-radius:2px;width:15px}
+#tip{position:fixed;z-index:60;pointer-events:none;background:var(--raise);
+  border:1px solid var(--rule-2);border-radius:7px;padding:7px 10px;font-size:12px;
+  box-shadow:var(--shadow);max-width:230px;line-height:1.45}
+#tip[hidden]{display:none!important}
+#tip b{display:block;margin-bottom:2px;font-size:12.5px}
+#tip .r{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);
+  font-size:11.5px;color:var(--ink-2)}
+
+/* ── empty / misc ──────────────────────────────────────────────── */
+.empty{text-align:center;padding:52px 20px;color:var(--ink-3)}
+.empty h2{font-size:17px;color:var(--ink);margin-bottom:7px}
+.empty p{margin:0 auto 18px;max-width:46ch;font-size:13.5px}
+.hint{font-size:12.5px;color:var(--ink-3);margin:9px 0 0}
+.drop{border:2px dashed var(--rule-2);border-radius:var(--r);padding:26px 18px;
+  text-align:center;color:var(--ink-3);font-size:13px;margin-top:12px}
+.drop.on{border-color:var(--brand-2);background:color-mix(in srgb,var(--brand-2) 7%,var(--surface))}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.scroll{max-height:460px;overflow:auto}
+.ft{margin-top:30px;padding-top:16px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--ink-3)}
+.ft code{font-family:var(--mono);font-size:11.5px;background:var(--surface);
+  padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+</style>
+</head>
+<body>
+
+<div class="bar"><div class="wrap bar-in">
+  <div class="mark">
+    <div class="mark-d"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 2.7c3.6 4.3 6 7.6 6 10.4a6 6 0 0 1-12 0c0-2.8 2.4-6.1 6-10.4Z"/>
+      <path d="M9.2 13.4h1.9l1 2.4 1-4.2.9 1.8h1.8"/></svg></div>
+    <div><h1>Chlorination Watch</h1>
+      <p id="sub">Borno inline chlorination &middot; 64 water points</p></div>
+  </div>
+  <input type="file" id="file" accept=".csv,.xlsx,.xls" multiple class="sr">
+  <button class="btn" id="sample-btn" type="button">Load sample</button>
+  <button class="btn btn-p" id="upload-btn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <path d="m7 9 5-5 5 5"/><path d="M12 4v12"/></svg>
+    Upload export</button>
+</div></div>
+
+<div class="rail"><div class="wrap rail-in">
+  <div class="fg"><span>LGA</span><div class="seg" id="f-lga" role="group" aria-label="Filter by LGA">
+    <button type="button" data-v="all" aria-pressed="true">All</button>
+    <button type="button" data-v="Jere" aria-pressed="false">Jere</button>
+    <button type="button" data-v="Konduga" aria-pressed="false">Konduga</button>
+    <button type="button" data-v="MMC" aria-pressed="false">MMC</button>
+  </div></div>
+  <div class="fg"><span>Period</span><div class="seg" id="f-days" role="group" aria-label="Filter by period">
+    <button type="button" data-v="7" aria-pressed="false">7 days</button>
+    <button type="button" data-v="14" aria-pressed="true">14 days</button>
+    <button type="button" data-v="30" aria-pressed="false">30 days</button>
+    <button type="button" data-v="0" aria-pressed="false">All</button>
+  </div></div>
+  <div class="fg"><span>Water point</span>
+    <label class="sr" for="f-site">Water point</label>
+    <select id="f-site"><option value="all">All water points</option></select></div>
+  <div class="asof" id="asof"></div>
+</div></div>
+
+<div class="tabs"><div class="wrap tabs-in" role="tablist" aria-label="Views">
+  <button class="tab" role="tab" id="t-over"   aria-selected="true"  aria-controls="p-over">Overview</button>
+  <button class="tab" role="tab" id="t-alert"  aria-selected="false" aria-controls="p-alert">Alerts <span class="cnt" id="c-alert">0</span></button>
+  <button class="tab" role="tab" id="t-points" aria-selected="false" aria-controls="p-points">Water points</button>
+  <button class="tab" role="tab" id="t-hh"     aria-selected="false" aria-controls="p-hh">Households</button>
+  <button class="tab" role="tab" id="t-map"    aria-selected="false" aria-controls="p-map">Map</button>
+  <button class="tab" role="tab" id="t-child"  aria-selected="false" aria-controls="p-child">Child health <span class="cnt" id="c-child">0</span></button>
+</div></div>
+
+<main class="wrap">
+  <div id="state"></div>
+  <section class="panel" id="p-over"   role="tabpanel" aria-labelledby="t-over"></section>
+  <section class="panel" id="p-alert"  role="tabpanel" aria-labelledby="t-alert" hidden></section>
+  <section class="panel" id="p-points" role="tabpanel" aria-labelledby="t-points" hidden></section>
+  <section class="panel" id="p-hh"     role="tabpanel" aria-labelledby="t-hh" hidden></section>
+  <section class="panel" id="p-map"    role="tabpanel" aria-labelledby="t-map" hidden></section>
+  <section class="panel" id="p-child"  role="tabpanel" aria-labelledby="t-child" hidden></section>
+
+  <div class="ft">
+    Reads the KoboToolbox export of <code>ilc_frc_monitoring</code> &mdash; the
+    submissions sheet and the <code>household</code> repeat sheet. Chlorine bands are
+    recomputed here from <code>frc_value</code> and <code>hh_frc</code>, so the dashboard
+    does not depend on how the export labels its calculated columns.
+    Readings saved to this page are visible to everyone the artifact is shared with.
+  </div>
+</main>
+<div id="tip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ── site register (from the programme's own list) ───────────────────────── */
+const SITE_COLS = ["code", "lga", "ward", "name", "pri"];
+const SITES_RAW = [
+["BH-001","Jere","Dusuman","Custom House Camp",1],
+["BH-002","Jere","Dusuman","Muna Elbadawi Unicef",1],
+["BH-003","Jere","Dusuman","Muna Ethiopia camp (Muna Bula Yalaye )",1],
+["BH-004","Jere","Maimusari","202 housing estate (water treatment plant)",1],
+["BH-005","Jere","Mashamari","505 Housing Estate",1],
+["BH-006","Jere","Old Maiduguri","Shuwari Filling Ball Camp",1],
+["BH-007","Jere","Old Maiduguri","Shuwari Madina, Behind Jere Line, Police Station, Bulama Jidda",1],
+["BH-008","Konduga","Auno","777 Estate",1],
+["BH-009","Konduga","Auno","Auno Bulama Ari",1],
+["BH-010","Konduga","Auno","Bulablin Ka'ana Ari",1],
+["BH-011","Konduga","Auno","Jimtilo Bulama maiduru",1],
+["BH-012","Konduga","Auno","Jimtilo lawanti",1],
+["BH-013","Konduga","Auno","Jimtilo mainari (Bulama Ba'ana",1],
+["BH-014","Konduga","Auno","Jimtilo Sulumburi Ba'ana Abba Aji",1],
+["BH-015","Konduga","Auno","Pompomari Old Air port Layin Mallam Gidado",1],
+["BH-016","Konduga","Auno","Shagari low-cost Gubio junction",1],
+["BH-017","Konduga","Dalori","Abba Malumti Borehore",1],
+["BH-018","MMC","Bolori II","Bulabulin alajeri bohole baituye( new foundation)",1],
+["BH-019","MMC","Bolori II","GWAIDAMGARI NGURO YALAI",1],
+["BH-020","MMC","Bolori II","Ngarannam Near Bridger Abba Kyari Hospital",1],
+["BH-021","MMC","Bolori II","Ngranam bulabulin alajeri opp government day sec school",1],
+["BH-022","MMC","Bolori II","Zajiri",1],
+["BH-023","MMC","Bulabulin","Kulo Gumna Primary school",1],
+["BH-024","MMC","Gwange III","New GRA, Behind Kashim Shettima House, Ghamji Street, Usman Kida Close.",1],
+["BH-025","MMC","Hausari","Duriya Sunnah",1],
+["BH-026","MMC","Lamisula","Bullet quarters camp, near westend flyover",1],
+["BH-027","MMC","Lamisula","Kasuwan gwoza",1],
+["BH-028","MMC","Lamisula","State low-cost",1],
+["BH-029","MMC","Limanti","Umar Ali Junction Adam kolo",1],
+["BH-030","MMC","Maisandari","Abuja Sharaton, Layin Yan Gwanjo,",1],
+["BH-031","MMC","Maisandari","Bulumkutu Abuja 2",1],
+["BH-032","MMC","Maisandari","Bulumkutu Layin Habib water",1],
+["BH-033","MMC","Maisandari","Bulumkutu Masllacin Maidaribe",1],
+["BH-034","MMC","Maisandari","Commissioner Quarters",1],
+["BH-035","MMC","Maisandari","Maduganari line Baban Tata",1],
+["BH-036","MMC","Maisandari","Maduganari tong medical store",1],
+["BH-037","MMC","Maisandari","Moduganari Opposite Special School, Abubakar Abdullahi",1],
+["BH-038","MMC","Shehuri North","Limanti Ba Wukcama",1],
+["BH-039","MMC","Shehuri South","Shehuri South Furemari Behind House of Assembly",1],
+["BH-040","Jere","Dusuman","Custom House B",0],
+["BH-041","Jere","Dusuman","Muna gareji",0],
+["BH-042","Jere","Mashamari","Tashan Rana Bulumkutu Abuja",0],
+["BH-043","Jere","Old Maiduguri","Ahmed Grema Camp",0],
+["BH-044","Jere","Old Maiduguri","Elmiskin Camp",0],
+["BH-045","Jere","Old Maiduguri","Madinatu, Jan Block Borehore",0],
+["BH-046","Konduga","Auno","Fulatari Babayan 777",0],
+["BH-047","Konduga","Auno","Old Air layin Al Madina",0],
+["BH-048","MMC","Bolori I","Shuwari 5",0],
+["BH-049","MMC","Bolori I","Shuwari 5 Mallam Bakura Goni Salisu",0],
+["BH-050","MMC","Bolori II","Ngaranam Bilingual School",0],
+["BH-051","MMC","Gamboru","Galadima Chari, Kulo Gumna",0],
+["BH-052","MMC","Hausari","Hausari primary schools",0],
+["BH-053","MMC","Hausari","Kofan Lawan",0],
+["BH-054","MMC","Limanti","Abbari Old prison",0],
+["BH-055","MMC","Limanti","kungar Makka Mamman Ngulairima",0],
+["BH-056","MMC","Limanti","Polwaya biyu",0],
+["BH-057","MMC","Maisandari","Maduganari line Masllacin Juma'a",0],
+["BH-058","MMC","Maisandari","Maduganari opposite borno special school",0],
+["BH-059","MMC","Maisandari","Maduganari opposite Special School Alhaji Bukar Abacha",0],
+["BH-060","MMC","Maisandari","Mashidami II Camp",0],
+["BH-061","MMC","Maisandari","Moduganari, University sangaya",0],
+["BH-062","MMC","Maisandari","Ngarannanm Lawanti",0],
+["BH-063","MMC","Maisandari","Shuwari-Maduganari opp Malik med store",0],
+["BH-064","MMC","Maisandari","Yajiwa Camp kusheri kusheri",0]];
+const SITES = SITES_RAW.map(r => Object.fromEntries(SITE_COLS.map((k, i) => [k, r[i]])));
+const SITE_BY = new Map(SITES.map(s => [s.code, s]));
+const LGA_FULL = { Jere: "Jere", Konduga: "Konduga", MMC: "Maiduguri (MMC)" };
+
+/* ── small helpers ──────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const low = v => String(v == null ? "" : v).trim().toLowerCase();
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+const n1 = v => v == null ? "–" : (Math.round(v * 10) / 10).toFixed(1);
+const n2 = v => v == null ? "–" : v.toFixed(2);
+const pct = v => v == null ? "–" : Math.round(v) + "%";
+const dayMs = 86400000;
+const iso = d => d.toISOString().slice(0, 10);
+const parseDay = s => {
+  if (!s) return null;
+  const t = String(s).trim();
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  m = t.match(/^(\d{1,2})[\/](\d{1,2})[\/](\d{4})/);          // d/m/Y
+  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+  const d = new Date(t);
+  return isNaN(d) ? null : new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+};
+const dshort = s => { const d = parseDay(s); return d ? d.toLocaleDateString("en-GB",
+  { day: "numeric", month: "short", timeZone: "UTC" }) : "–"; };
+const dlong = s => { const d = parseDay(s); return d ? d.toLocaleDateString("en-GB",
+  { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "–"; };
+const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+/* ── chlorine bands: recomputed here, never read from the export ─────────── */
+function band(v) {
+  const f = num(v); if (f == null) return null;
+  if (f === 0) return "fault";
+  if (f < 0.2) return "outlow";
+  if (f < 0.3) return "low";
+  if (f <= 0.8) return "target";
+  if (f <= 2.0) return "high";
+  return "outhigh";
+}
+const BAND = {
+  fault:   { label: "No chlorine (0.0)",  sev: "crit",  short: "No chlorine" },
+  outlow:  { label: "Below 0.2",          sev: "high",  short: "Below range" },
+  low:     { label: "0.2 to 0.3",         sev: "watch", short: "Low" },
+  target:  { label: "0.3 to 0.8 target",  sev: "ok",    short: "On target" },
+  high:    { label: "0.8 to 2.0",         sev: "watch", short: "High" },
+  outhigh: { label: "Above 2.0",          sev: "high",  short: "Above range" }
+};
+const BAND_ORDER = ["fault", "outlow", "low", "target", "high", "outhigh"];
+const SEV = { crit: 3, high: 2, watch: 1, ok: 0 };
+const SEV_WORD = { crit: "Critical", high: "High", watch: "Watch", ok: "OK" };
+const hhPass = v => { const f = num(v); return f == null ? null : f >= 0.2; };
+
+/* ── value normalisers (export may carry choice names or labels) ─────────── */
+const yn = v => { const s = low(v);
+  if (!s) return "";
+  if (s === "yes" || s === "1" || s === "true") return "yes";
+  if (s === "no" || s === "0" || s === "false") return "no";
+  return s.startsWith("yes") ? "yes" : s.startsWith("no") ? "no" : ""; };
+function wpStatus(v) {
+  const s = low(v);
+  if (!s) return "";
+  if (s.includes("open_now") || s.startsWith("yes")) return "open_now";
+  if (s.includes("not_today") || s.includes("did not open at all")) return "not_today";
+  if (s.includes("later") || s.includes("not open yet")) return "later";
+  if (s.includes("closed_today") || s.includes("already closed")) return "closed_today";
+  if (s.includes("faulty")) return "faulty";
+  return s;
+}
+function unitStatus(v) {
+  const s = low(v);
+  if (s.includes("not_dosing") || s.includes("not dosing at all")) return "not_dosing";
+  if (s.includes("out_of_service") || s.includes("out of service")) return "out_of_service";
+  if (s.includes("running_off") || s.includes("will not hold")) return "running_off";
+  if (s.includes("running_ok") || s.includes("dosing correctly")) return "running_ok";
+  return s;
+}
+function consentOf(v) {
+  const s = low(v);
+  if (!s) return "";
+  if (s.includes("refus") || s.includes("declin")) return "refused";
+  if (s.includes("absent") || s.includes("nobody")) return "absent";
+  if (s.startsWith("yes") || s === "1" || s === "true") return "yes";
+  return s;
+}
+function selection(v) {
+  const s = low(v);
+  if (s.includes("traced_other") || s.includes("another water point")) return "traced_other";
+  if (s.includes("traced") || s.includes("seen fetching")) return "traced";
+  if (s.includes("random")) return "random";
+  if (s.includes("revisit")) return "revisit";
+  return s;
+}
+const SELECTION_LABEL = { traced: "Traced from this point",
+  traced_other: "Traced from another point", random: "Randomly selected",
+  revisit: "Revisit" };
+const roundOf = v => low(v).includes("even") ? "evening" : low(v).includes("morn")
+  ? "morning" : low(v);
+
+/* ── CSV parsing (quoted fields, embedded commas and newlines) ───────────── */
+function parseCSV(text) {
+  text = text.replace(/^﻿/, "");
+  /* Kobo writes comma-separated by default but semicolon in some locales.
+     Decide once, from the header line, outside quotes. */
+  const head = text.slice(0, text.indexOf("\n") < 0 ? text.length : text.indexOf("\n"));
+  let inQ = false, commas = 0, semis = 0, tabs = 0;
+  for (const c of head) {
+    if (c === '"') inQ = !inQ;
+    else if (!inQ) { if (c === ",") commas++; else if (c === ";") semis++; else if (c === "\t") tabs++; }
+  }
+  const D = tabs > commas && tabs > semis ? "\t" : semis > commas ? ";" : ",";
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+      else f += c;
+    } else if (c === '"') q = true;
+    else if (c === D) { row.push(f); f = ""; }
+    else if (c === "\n") { row.push(f); f = ""; rows.push(row); row = []; }
+    else if (c !== "\r") f += c;
+  }
+  if (f !== "" || row.length) { row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ""));
+}
+
+/* ── column lookup: tolerates group prefixes and label headers ───────────── */
+function indexer(header) {
+  const m = new Map();
+  header.forEach((h, i) => {
+    const raw = String(h == null ? "" : h).trim();
+    const leaf = raw.split("/").pop().trim().toLowerCase();
+    if (leaf && !m.has(leaf)) m.set(leaf, i);
+    const full = raw.toLowerCase();
+    if (full && !m.has(full)) m.set(full, i);
+  });
+  return names => { for (const n of names) { const i = m.get(n); if (i != null) return i; }
+    return -1; };
+}
+const pick = (row, i) => i < 0 ? "" : (row[i] == null ? "" : row[i]);
+
+/* ── turn a sheet into typed records ────────────────────────────────────── */
+function readParent(rows) {
+  if (!rows.length) return [];
+  const at = indexer(rows[0]), out = [];
+  const iDate = at(["visit_date"]), iRound = at(["visit_round"]),
+    iSite = at(["site"]), iLga = at(["lga"]), iWard = at(["ward"]),
+    iFrc = at(["frc_value"]), iStatus = at(["wp_status"]), iUnit = at(["unit_status"]),
+    iStock = at(["stock_days"]), iRep = at(["reporter_code"]),
+    iFaultD = at(["fault_days_down"]), iFaultS = at(["fault_since"]),
+    iBoard = at(["board_updated"]), iDuty = at(["duty_person_present"]),
+    iVisit = at(["hh_visited"]), iTest = at(["hh_tested_total"]),
+    iPass = at(["hh_pass_total"]), iU5 = at(["hh_under5_total"]),
+    iLit = at(["hh_litres_total"]), iAwd = at(["awd_cases_total"]),
+    iAwdE = at(["awd_emergency_total"]), iIdx = at(["_index", "_id"]),
+    iLat = at(["_gps_waterpoint_latitude", "gps_waterpoint_latitude"]),
+    iLon = at(["_gps_waterpoint_longitude", "gps_waterpoint_longitude"]),
+    iGps = at(["gps_waterpoint"]), iSub = at(["_submission_time"]);
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const code = String(pick(row, iSite)).trim().toUpperCase();
+    const date = parseDay(pick(row, iDate)) || parseDay(pick(row, iSub));
+    if (!code && !date) continue;
+    let lat = num(pick(row, iLat)), lon = num(pick(row, iLon));
+    if (lat == null && iGps >= 0) {
+      const p = String(pick(row, iGps)).trim().split(/\s+/);
+      if (p.length >= 2) { lat = num(p[0]); lon = num(p[1]); }
+    }
+    const reg = SITE_BY.get(code);
+    const frc = num(pick(row, iFrc));
+    out.push({
+      idx: String(pick(row, iIdx) || r),
+      date: date ? iso(date) : "", t: date ? date.getTime() : 0,
+      round: roundOf(pick(row, iRound)) || "morning",
+      site: code, name: reg ? reg.name : (code || "Unknown"),
+      lga: reg ? reg.lga : String(pick(row, iLga)).trim(),
+      ward: reg ? reg.ward : String(pick(row, iWard)).trim(),
+      pri: reg ? reg.pri : 0,
+      reporter: String(pick(row, iRep)).trim(),
+      status: wpStatus(pick(row, iStatus)), unit: unitStatus(pick(row, iUnit)),
+      frc, band: band(frc), stock: num(pick(row, iStock)),
+      faultDays: num(pick(row, iFaultD)), faultSince: String(pick(row, iFaultS)).trim(),
+      board: yn(pick(row, iBoard)), duty: yn(pick(row, iDuty)),
+      hhVisited: num(pick(row, iVisit)) || 0, hhTested: num(pick(row, iTest)) || 0,
+      hhPass: num(pick(row, iPass)) || 0, under5: num(pick(row, iU5)) || 0,
+      litres: num(pick(row, iLit)) || 0, awd: num(pick(row, iAwd)) || 0,
+      awdEmerg: num(pick(row, iAwdE)) || 0, lat, lon
+    });
+  }
+  return out;
+}
+
+function readHH(rows) {
+  if (!rows.length) return [];
+  const at = indexer(rows[0]), out = [];
+  const iCode = at(["hh_code"]), iSite = at(["hh_site"]), iDate = at(["hh_visit_date"]),
+    iRound = at(["hh_visit_round"]), iFrc = at(["hh_frc"]), iWp = at(["hh_wp_frc"]),
+    iSize = at(["hh_size"]), iU5 = at(["hh_under5"]), iSel = at(["hh_selection"]),
+    iLit = at(["hh_litres_per_day"]), iLpcd = at(["hh_lpcd"]),
+    iShare = at(["hh_share_this_point"]), iCons = at(["hh_consent"]),
+    iAwd = at(["hh_awd_case"]), iAwdN = at(["hh_awd_cases"]),
+    iFlag = at(["hh_awd_flag"]), iRef = at(["hh_awd_referred"]),
+    iPhc = at(["hh_awd_phc"]), iCare = at(["hh_awd_care"]),
+    iOrs = at(["hh_awd_ors"]), iDanger = at(["hh_awd_danger"]),
+    iConc = at(["hh_concern"]), iCat = at(["hh_concern_cat"]),
+    iUrg = at(["hh_concern_urgent"]), iRaise = at(["hh_concern_raised"]),
+    iCov = at(["hh_container_covered"]), iCup = at(["hh_cup_outside"]),
+    iPar = at(["_parent_index", "_submission__id", "_parent_table_name"]),
+    iLat = at(["_hh_gps_latitude", "hh_gps_latitude"]),
+    iLon = at(["_hh_gps_longitude", "hh_gps_longitude"]),
+    iGps = at(["hh_gps"]), iLand = at(["hh_landmark"]);
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const code = String(pick(row, iSite)).trim().toUpperCase();
+    const date = parseDay(pick(row, iDate));
+    const frc = num(pick(row, iFrc));
+    if (!code && frc == null) continue;
+    let lat = num(pick(row, iLat)), lon = num(pick(row, iLon));
+    if (lat == null && iGps >= 0) {
+      const p = String(pick(row, iGps)).trim().split(/\s+/);
+      if (p.length >= 2) { lat = num(p[0]); lon = num(p[1]); }
+    }
+    const reg = SITE_BY.get(code);
+    const dsel = low(pick(row, iDanger));
+    out.push({
+      parent: String(pick(row, iPar) || ""),
+      hhCode: String(pick(row, iCode)).trim(),
+      site: code, name: reg ? reg.name : code, lga: reg ? reg.lga : "",
+      date: date ? iso(date) : "", t: date ? date.getTime() : 0,
+      round: roundOf(pick(row, iRound)),
+      consent: consentOf(pick(row, iCons)),
+      frc, band: band(frc), pass: hhPass(frc), wpFrc: num(pick(row, iWp)),
+      size: num(pick(row, iSize)), under5: num(pick(row, iU5)) || 0,
+      selection: selection(pick(row, iSel)),
+      litres: num(pick(row, iLit)), lpcd: num(pick(row, iLpcd)),
+      share: num(pick(row, iShare)),
+      covered: yn(pick(row, iCov)), cup: yn(pick(row, iCup)),
+      awd: yn(pick(row, iAwd)), awdN: num(pick(row, iAwdN)) || 0,
+      flag: low(pick(row, iFlag)).toUpperCase(),
+      danger: dsel && !(dsel.trim() === "none") ? dsel : "",
+      referred: yn(pick(row, iRef)), phc: String(pick(row, iPhc)).trim(),
+      care: low(pick(row, iCare)), ors: yn(pick(row, iOrs)),
+      raised: yn(pick(row, iRaise)), concern: String(pick(row, iConc)).trim(),
+      cat: low(pick(row, iCat)), urgent: yn(pick(row, iUrg)),
+      landmark: String(pick(row, iLand)).trim(), lat, lon
+    });
+  }
+  return out;
+}
+
+/* a sheet is the household repeat if it carries household-only columns */
+const isHHSheet = header => {
+  const at = indexer(header);
+  return at(["hh_frc"]) >= 0 || at(["hh_code"]) >= 0 || at(["hh_consent"]) >= 0;
+};
+const isParentSheet = header => {
+  const at = indexer(header);
+  return at(["frc_value"]) >= 0 || at(["wp_status"]) >= 0 || at(["visit_round"]) >= 0;
+};
+
+/* ── state ──────────────────────────────────────────────────────────────── */
+const ST = { parent: [], hh: [], sample: false, loaded: null,
+  tab: "over", lga: "all", days: 14, site: "all", sev: "all",
+  sort: { k: "sev", d: "d" }, notes: [], stored: null, local: null,
+  pending: null, saving: null };
+
+/* ── derived views ──────────────────────────────────────────────────────── */
+function refDay() {
+  const t = Math.max(0, ...ST.parent.map(p => p.t), ...ST.hh.map(h => h.t));
+  return t > 0 ? t : Date.now();
+}
+function windowStart() {
+  return ST.days > 0 ? refDay() - (ST.days - 1) * dayMs : -Infinity;
+}
+function inScope(r) {
+  if (ST.lga !== "all" && r.lga !== ST.lga) return false;
+  if (ST.site !== "all" && r.site !== ST.site) return false;
+  return r.t >= windowStart();
+}
+const viewP = () => ST.parent.filter(inScope);
+const viewH = () => ST.hh.filter(inScope);
+function scopeSites() {
+  return SITES.filter(s => (ST.lga === "all" || s.lga === ST.lga)
+    && (ST.site === "all" || s.code === ST.site));
+}
+/* latest submission per site, within scope */
+function latestBySite(rows) {
+  const m = new Map();
+  for (const r of rows) {
+    const cur = m.get(r.site);
+    if (!cur || r.t > cur.t || (r.t === cur.t && r.round === "evening")) m.set(r.site, r);
+  }
+  return m;
+}
+
+/* ── alert engine ───────────────────────────────────────────────────────── */
+function buildAlerts() {
+  const out = [], P = viewP(), H = viewH(), latest = latestBySite(P), ref = refDay();
+  const add = a => out.push(a);
+  const where = r => `${r.name} (${r.site}), ${LGA_FULL[r.lga] || r.lga}`;
+  const when = r => `${r.round === "evening" ? "evening" : "morning"} visit on ${dlong(r.date)}`;
+
+  for (const r of latest.values()) {
+    if (r.band === "fault") add({ sev: "crit", lane: "water", site: r.site, r,
+      title: "No chlorine in the water",
+      detail: `Reading 0.00 mg/L at the ${when(r)}. Water is flowing untreated.`,
+      act: "Check the chlorinator, post the notice at the point, and tell the committee chair and the LGA today." });
+    if (r.status === "faulty") add({ sev: "crit", lane: "water", site: r.site, r,
+      title: "Point not operating",
+      detail: `Recorded faulty at the ${when(r)}` + (r.faultDays != null
+        ? `, down for ${r.faultDays} day(s).` : "."),
+      act: "Confirm the repair request has reached the LGA and record where people are fetching instead." });
+    if (r.status === "not_today") add({ sev: "crit", lane: "water", site: r.site, r,
+      title: "Point did not open",
+      detail: `Did not open at all on ${dlong(r.date)}.`,
+      act: "Find out why it did not open and get it running tomorrow." });
+    if (r.unit === "not_dosing") add({ sev: "crit", lane: "water", site: r.site, r,
+      title: "Chlorinator not dosing",
+      detail: `Unit recorded as not dosing at the ${when(r)}` +
+        (r.frc != null ? `, reading ${n2(r.frc)} mg/L.` : "."),
+      act: "Service the unit before the next opening." });
+    if (r.band === "outlow" || r.band === "outhigh") add({ sev: "high", lane: "water",
+      site: r.site, r, title: "Residual outside the safe range",
+      detail: `${n2(r.frc)} mg/L at the ${when(r)} — ${BAND[r.band].label.toLowerCase()}.`,
+      act: "Adjust the dose and re-test after 30 minutes." });
+    if (r.stock != null && r.stock <= 7) add({ sev: "high", lane: "water", site: r.site, r,
+      title: "Chlorine stock critical",
+      detail: `${r.stock} day(s) of stock left as of ${dlong(r.date)}.`,
+      act: "Raise the resupply request now." });
+    else if (r.stock != null && r.stock <= 14) add({ sev: "watch", lane: "water",
+      site: r.site, r, title: "Chlorine stock low",
+      detail: `${r.stock} day(s) of stock left as of ${dlong(r.date)}.`,
+      act: "Reorder this week." });
+    if (r.faultDays != null && r.faultDays > 7) add({ sev: "high", lane: "water",
+      site: r.site, r, title: "Down more than a week",
+      detail: `Reported faulty since ${dlong(r.faultSince) }, ${r.faultDays} day(s) ago.`,
+      act: "Escalate to RUWASSA — the LGA route has not resolved it." });
+    if (r.band === "low" || r.band === "high") add({ sev: "watch", lane: "water",
+      site: r.site, r, title: "Residual drifting off target",
+      detail: `${n2(r.frc)} mg/L at the ${when(r)} — acceptable but outside 0.3 to 0.8.`,
+      act: "Adjust the dose at the next visit." });
+    if (r.board === "no") add({ sev: "watch", lane: "water", site: r.site, r,
+      title: "Display board not updated",
+      detail: `The reading was not written on the board at the ${when(r)}.`,
+      act: "Remind the operator — the board is how the community sees the result." });
+    if (r.duty === "no") add({ sev: "watch", lane: "water", site: r.site, r,
+      title: "No duty person at the point",
+      detail: `Nobody on duty at the ${when(r)}.`,
+      act: "Check the duty roster with the Water Point Committee." });
+  }
+
+  /* silent sites: in the register, in scope, but nothing received.
+     Many at once is one finding about reporting, not many about points. */
+  const silent = [];
+  for (const s of scopeSites()) {
+    const r = latest.get(s.code);
+    const days = r ? Math.round((ref - r.t) / dayMs) : null;
+    if (!r) silent.push(s);
+    else if (days >= 2) add({ sev: "watch", lane: "water", site: s.code, r,
+      title: "Reporting has stopped",
+      detail: `Last report was ${days} day(s) ago, on ${dlong(r.date)}.`,
+      act: "Check the operator has signal and has sent the queued records." });
+  }
+  if (silent.length > 5) {
+    const names = silent.slice(0, 6).map(s => s.code).join(", ");
+    add({ sev: silent.length > scopeSites().length / 2 ? "high" : "watch", lane: "water",
+      site: silent[0].code, group: silent.map(s => s.code),
+      r: { site: silent[0].code, name: silent[0].name, lga: silent[0].lga, date: "", round: "", t: 0 },
+      title: `${silent.length} points have sent nothing`,
+      detail: `No record at all in this period from ${names}` +
+        (silent.length > 6 ? ` and ${silent.length - 6} more.` : ".") +
+        ` That is ${Math.round(100 * silent.length / Math.max(1, scopeSites().length))}% ` +
+        `of the points in scope.`,
+      act: "Check whether this is a reporting failure or a period with no data uploaded yet." });
+  } else for (const s of silent) {
+    add({ sev: "watch", lane: "water", site: s.code,
+      r: { site: s.code, name: s.name, lga: s.lga, date: "", round: "", t: 0 },
+      title: "No report received",
+      detail: `Nothing submitted from ${s.name} (${s.code}) in this period.`,
+      act: "Contact the operator and confirm the phone is syncing." });
+  }
+
+  /* household and child health */
+  for (const h of H) {
+    if (h.flag === "EMERGENCY" || (h.awd === "yes" && h.danger)) add({ sev: "crit",
+      lane: "health", site: h.site, r: h,
+      title: "Child under five with danger signs",
+      detail: `Household ${h.hhCode || "–"} near ${h.name} on ${dlong(h.date)}` +
+        ` — watery diarrhoea with danger signs.`,
+      act: "Confirm the child reached a health centre. If not, act now." });
+    else if (h.awd === "yes" && h.referred === "no") add({ sev: "high", lane: "health",
+      site: h.site, r: h, title: "Diarrhoea case with no referral",
+      detail: `Household ${h.hhCode || "–"} near ${h.name} on ${dlong(h.date)}` +
+        ` — ${h.awdN || 1} child(ren), no referral recorded.`,
+      act: "Refer to the nearest health centre and record which one." });
+    else if (h.awd === "yes") add({ sev: "watch", lane: "health", site: h.site, r: h,
+      title: "Diarrhoea case referred",
+      detail: `Household ${h.hhCode || "–"} near ${h.name} on ${dlong(h.date)}` +
+        (h.phc ? ` — referred to ${h.phc}.` : " — referral recorded."),
+      act: "Follow up at the next round that the child was seen." });
+    if (h.urgent === "yes") add({ sev: "high", lane: "water", site: h.site, r: h,
+      title: "Urgent community concern",
+      detail: (h.concern ? `“${h.concern}”` : "An urgent concern was logged") +
+        ` — household ${h.hhCode || "–"} near ${h.name}, ${dlong(h.date)}.`,
+      act: "Pass to the help desk and raise it at the next community dialogue." });
+  }
+
+  /* per-site household pass rate */
+  const bySite = new Map();
+  for (const h of H) {
+    if (h.pass == null) continue;
+    if (!bySite.has(h.site)) bySite.set(h.site, { n: 0, p: 0, name: h.name, lga: h.lga });
+    const g = bySite.get(h.site); g.n++; if (h.pass) g.p++;
+  }
+  for (const [code, g] of bySite) {
+    if (g.n < 3) continue;
+    const rate = 100 * g.p / g.n;
+    if (rate < 60) add({ sev: "watch", lane: "water", site: code,
+      r: { site: code, name: g.name, lga: g.lga, date: "", round: "" },
+      title: "Stored water failing in the home",
+      detail: `Only ${Math.round(rate)}% of ${g.n} households tested at ${g.name} ` +
+        `were at or above 0.2 mg/L.`,
+      act: "Check storage practice and whether they are topping up from another source." });
+  }
+
+  out.forEach(a => { a.msg = alertMsg(a); a.key = a.sev + "|" + a.site + "|" + a.title; });
+  out.sort((x, y) => SEV[y.sev] - SEV[x.sev] || (y.r.t || 0) - (x.r.t || 0)
+    || x.site.localeCompare(y.site));
+  return out;
+}
+function alertMsg(a) {
+  const s = SITE_BY.get(a.site);
+  const place = s ? `${s.name} (${s.code}), ${LGA_FULL[s.lga] || s.lga}` : a.site;
+  return `[${SEV_WORD[a.sev].toUpperCase()}] ${a.title}\n${place}\n` +
+    `${a.detail}\nAction: ${a.act}\n— Chlorination Watch`;
+}
+
+/* ── SVG chart helpers ──────────────────────────────────────────────────── */
+let tipOn = null;
+function tipHTML(title, rows) {
+  return `<b>${esc(title)}</b>` + rows.map(r =>
+    `<span class="r"><span>${esc(r[0])}</span><span>${esc(r[1])}</span></span>`).join("");
+}
+const tipAttr = h => ` data-tip="${h.replace(/"/g, "&quot;")}"`;
+
+function axisY(x0, y0, y1, max, ticks, fmt, x1) {
+  let s = "";
+  for (let i = 0; i <= ticks; i++) {
+    const v = max * i / ticks, y = y1 - (y1 - y0) * (i / ticks);
+    s += `<line x1="${x0}" y1="${y.toFixed(1)}" x2="${x1 == null ? x0 + 1 : x1}" y2="${y.toFixed(1)}"
+      stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<text x="${x0 - 7}" y="${(y + 3.5).toFixed(1)}" text-anchor="end"
+      font-size="10.5">${fmt ? fmt(v) : n1(v)}</text>`;
+  }
+  return s;
+}
+
+/* FRC over time, morning vs evening */
+function chartTrend(rows) {
+  const W = 1000, H = 268, L = 46, R = 16, T = 14, B = 30;
+  const byDay = new Map();
+  for (const r of rows) {
+    if (r.frc == null) continue;
+    if (!byDay.has(r.date)) byDay.set(r.date, { m: [], e: [] });
+    byDay.get(r.date)[r.round === "evening" ? "e" : "m"].push(r.frc);
+  }
+  const days = [...byDay.keys()].sort();
+  if (days.length < 2) return `<p class="hint">Not enough days in this period to draw a trend.</p>`;
+  const max = 2.0, x = i => L + (W - L - R) * (days.length === 1 ? .5 : i / (days.length - 1));
+  const y = v => H - B - (H - B - T) * (Math.min(v, max) / max);
+  const band0 = y(0.8), band1 = y(0.3);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="Average chlorine residual by day, morning and evening">`;
+  s += `<rect x="${L}" y="${band0}" width="${W - L - R}" height="${band1 - band0}"
+    fill="var(--ok)" opacity=".10"/>`;
+  s += `<text x="${L + 6}" y="${band0 - 4}" font-size="10" fill="var(--ok-ink)">target 0.3–0.8</text>`;
+  s += axisY(L, T, H - B, max, 4, v => v.toFixed(1), W - R);
+  s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--axis)"/>`;
+  const step = Math.ceil(days.length / 8);
+  days.forEach((d, i) => { if (i % step) return;
+    s += `<text x="${x(i).toFixed(1)}" y="${H - B + 15}" text-anchor="middle"
+      font-size="10.5">${esc(dshort(d))}</text>`; });
+  for (const [key, col, name] of [["m", "var(--s1)", "Morning"], ["e", "var(--s2)", "Evening"]]) {
+    const pts = days.map((d, i) => [i, mean(byDay.get(d)[key])]).filter(p => p[1] != null);
+    if (!pts.length) continue;
+    s += `<polyline fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"
+      stroke-linecap="round" points="${pts.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}"/>`;
+    pts.forEach(p => {
+      const n = byDay.get(days[p[0]])[key].length;
+      s += `<circle cx="${x(p[0]).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="4.5" fill="${col}"
+        stroke="var(--surface)" stroke-width="2"${tipAttr(tipHTML(dlong(days[p[0]]),
+        [[name + " mean", n2(p[1]) + " mg/L"], ["Readings", String(n)]]))}/>`;
+    });
+  }
+  s += `</svg><div class="lgd"><span><i class="ln" style="background:var(--s1)"></i>Morning</span>
+    <span><i class="ln" style="background:var(--s2)"></i>Evening</span>
+    <span><i style="background:var(--ok);opacity:.35"></i>Target band</span></div>`;
+  return s;
+}
+
+/* band distribution as a segmented bar with direct labels */
+function chartBands(rows, key) {
+  const counts = new Map(BAND_ORDER.map(b => [b, 0]));
+  let total = 0;
+  for (const r of rows) { const b = key ? r[key] : r.band;
+    if (b && counts.has(b)) { counts.set(b, counts.get(b) + 1); total++; } }
+  if (!total) return `<p class="hint">No readings in this period.</p>`;
+  const W = 1000, H = 46;
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="Distribution of chlorine readings by band">`, xx = 0;
+  for (const b of BAND_ORDER) {
+    const c = counts.get(b); if (!c) continue;
+    const w = (W - 2) * c / total, sev = BAND[b].sev;
+    s += `<rect x="${xx.toFixed(1)}" y="0" width="${Math.max(w - 2, 1).toFixed(1)}" height="26"
+      rx="3" fill="var(--${sev})"${tipAttr(tipHTML(BAND[b].label,
+      [["Readings", String(c)], ["Share", Math.round(100 * c / total) + "%"]]))}/>`;
+    if (w > 58) s += `<text x="${(xx + w / 2 - 1).toFixed(1)}" y="17" text-anchor="middle"
+      font-size="11" font-weight="600" fill="${sev === "watch" ? "#0b0b0b" : "#fff"}"
+      >${Math.round(100 * c / total)}%</text>`;
+    if (w > 42) s += `<text x="${(xx + w / 2 - 1).toFixed(1)}" y="40" text-anchor="middle"
+      font-size="10">${esc(BAND[b].short)}</text>`;
+    xx += w;
+  }
+  s += `</svg><div class="lgd">` + BAND_ORDER.filter(b => counts.get(b)).map(b =>
+    `<span><i style="background:var(--${BAND[b].sev})"></i>${esc(BAND[b].label)}
+      <b style="font-family:var(--mono);margin-left:3px">${counts.get(b)}</b></span>`).join("") +
+    `</div>`;
+  return s;
+}
+
+/* stored water against the point's own reading */
+function chartDecay(hh) {
+  const pts = hh.filter(h => h.frc != null && h.wpFrc != null);
+  if (pts.length < 3) return `<p class="hint">Need at least three household readings with a matching water point reading.</p>`;
+  const W = 1000, H = 340, L = 48, R = 18, T = 16, B = 38, max = 1.6;
+  const x = v => L + (W - L - R) * (Math.min(v, max) / max);
+  const y = v => H - B - (H - B - T) * (Math.min(v, max) / max);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="Stored household water against the water point reading">`;
+  s += axisY(L, T, H - B, max, 4, v => v.toFixed(1), W - R);
+  s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--axis)"/>`;
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4;
+    s += `<text x="${x(v).toFixed(1)}" y="${H - B + 15}" text-anchor="middle"
+      font-size="10.5">${v.toFixed(1)}</text>`; }
+  s += `<line x1="${L}" y1="${y(0)}" x2="${x(max)}" y2="${y(max)}" stroke="var(--ink-3)"
+    stroke-width="1" stroke-dasharray="4 4" opacity=".55"/>`;
+  s += `<text x="${x(max) - 4}" y="${y(max) + 13}" text-anchor="end" font-size="10"
+    fill="var(--ink-3)">no loss</text>`;
+  s += `<line x1="${L}" y1="${y(0.2)}" x2="${W - R}" y2="${y(0.2)}" stroke="var(--crit)"
+    stroke-width="1.5" stroke-dasharray="5 3"/>`;
+  s += `<text x="${W - R - 3}" y="${y(0.2) - 5}" text-anchor="end" font-size="10"
+    fill="var(--crit-ink)" font-weight="600">household minimum 0.2</text>`;
+  for (const h of pts) {
+    s += `<circle cx="${x(h.wpFrc).toFixed(1)}" cy="${y(h.frc).toFixed(1)}" r="4.5"
+      fill="var(--${h.pass ? "ok" : "crit"})" opacity=".8" stroke="var(--surface)"
+      stroke-width="1.5"${tipAttr(tipHTML((h.hhCode || "Household") + " — " + h.name,
+      [["At the point", n2(h.wpFrc) + " mg/L"], ["In the home", n2(h.frc) + " mg/L"],
+       ["Result", h.pass ? "At or above 0.2" : "Below 0.2"],
+       ["Visited", dlong(h.date)]]))}/>`;
+  }
+  s += `<text x="${L - 7}" y="${T + 4}" text-anchor="end" font-size="10"
+    fill="var(--ink-3)">mg/L</text>`;
+  s += `</svg><div class="lgd">
+    <span><i style="background:var(--ok)"></i>At or above 0.2 in the home</span>
+    <span><i style="background:var(--crit)"></i>Below 0.2 in the home</span>
+    <span style="color:var(--ink-3)">Horizontal: reading at the point &middot; vertical: reading in the home</span>
+    </div>`;
+  return s;
+}
+
+/* litres per person per day, by site */
+function chartLpcd(hh) {
+  const by = new Map();
+  for (const h of hh) { if (h.lpcd == null) continue;
+    if (!by.has(h.site)) by.set(h.site, { v: [], name: h.name });
+    by.get(h.site).v.push(h.lpcd); }
+  const rows = [...by.entries()].map(([code, g]) =>
+    ({ code, name: g.name, v: mean(g.v), n: g.v.length }))
+    .sort((a, b) => a.v - b.v).slice(0, 16);
+  if (!rows.length) return `<p class="hint">No water-use readings in this period.</p>`;
+  const W = 1000, bh = 22, gap = 6, L = 196, R = 52, T = 16;
+  const H = T + rows.length * (bh + gap) + 20;
+  const max = Math.max(20, ...rows.map(r => r.v));
+  const w = v => (W - L - R) * (v / max);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="Average litres per person per day by water point">`;
+  const gx = L + w(15);
+  s += `<line x1="${gx.toFixed(1)}" y1="${T - 6}" x2="${gx.toFixed(1)}" y2="${H - 18}"
+    stroke="var(--crit)" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+  s += `<text x="${(gx + 4).toFixed(1)}" y="${H - 6}" font-size="10"
+    fill="var(--crit-ink)" font-weight="600">15 L per person per day minimum</text>`;
+  rows.forEach((r, i) => {
+    const yy = T + i * (bh + gap), sev = r.v < 7.5 ? "crit" : r.v < 15 ? "high" : "ok";
+    s += `<text x="${L - 8}" y="${yy + bh / 2 + 4}" text-anchor="end" font-size="11"
+      fill="var(--ink-2)">${esc(r.name.length > 22 ? r.name.slice(0, 21) + "…" : r.name)}</text>`;
+    s += `<rect x="${L}" y="${yy}" width="${Math.max(w(r.v), 2).toFixed(1)}" height="${bh}"
+      rx="3" fill="var(--${sev})"${tipAttr(tipHTML(r.name + " (" + r.code + ")",
+      [["Average", n1(r.v) + " L per person per day"], ["Households", String(r.n)]]))}/>`;
+    s += `<text x="${(L + w(r.v) + 7).toFixed(1)}" y="${yy + bh / 2 + 4}" font-size="11"
+      font-weight="600" fill="var(--ink-2)" font-family="var(--mono)">${n1(r.v)}</text>`;
+  });
+  s += `</svg><div class="lgd">
+    <span><i style="background:var(--ok)"></i>15 L and above</span>
+    <span><i style="background:var(--high)"></i>7.5 to 15 L</span>
+    <span><i style="background:var(--crit)"></i>Below 7.5 L (survival level)</span></div>`;
+  return s;
+}
+
+/* reporting coverage per day */
+function chartCoverage(rows) {
+  const total = scopeSites().length || 1;
+  const by = new Map();
+  for (const r of rows) { if (!by.has(r.date)) by.set(r.date, new Set());
+    by.get(r.date).add(r.site); }
+  const days = [...by.keys()].sort();
+  if (!days.length) return `<p class="hint">No submissions in this period.</p>`;
+  const W = 1000, H = 168, L = 38, R = 14, T = 12, B = 28;
+  const bw = Math.max(4, Math.min(34, (W - L - R) / days.length - 5));
+  const x = i => L + (W - L - R) * ((i + .5) / days.length);
+  const y = v => H - B - (H - B - T) * (v / total);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="Water points reporting each day">`;
+  s += axisY(L, T, H - B, total, 2, v => String(Math.round(v)), W - R);
+  s += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--axis)"/>`;
+  const step = Math.ceil(days.length / 8);
+  days.forEach((d, i) => {
+    const n = by.get(d).size, sev = n >= total * .9 ? "ok" : n >= total * .6 ? "watch" : "high";
+    s += `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${y(n).toFixed(1)}" width="${bw.toFixed(1)}"
+      height="${(H - B - y(n)).toFixed(1)}" rx="3" fill="var(--${sev})"${tipAttr(tipHTML(dlong(d),
+      [["Points reporting", n + " of " + total], ["Coverage", Math.round(100 * n / total) + "%"]]))}/>`;
+    if (!(i % step)) s += `<text x="${x(i).toFixed(1)}" y="${H - B + 15}" text-anchor="middle"
+      font-size="10.5">${esc(dshort(d))}</text>`;
+  });
+  s += `</svg><div class="lgd"><span style="color:var(--ink-3)">Water points reporting
+    out of ${total} in scope</span></div>`;
+  return s;
+}
+
+/* ── shared store ────────────────────────────────────────────────────────────
+   The dataset is kept outside the page so everyone with the link sees the
+   same figures. Rows are stored as compact arrays in chunked documents:
+   a document body caps at 256 KiB, so one row per document would be wrong. */
+const PCOLS = ["idx", "date", "round", "site", "reporter", "status", "unit", "frc",
+  "stock", "faultDays", "faultSince", "board", "duty", "hhVisited", "hhTested",
+  "hhPass", "under5", "litres", "awd", "awdEmerg", "lat", "lon"];
+const HCOLS = ["parent", "hhCode", "site", "date", "round", "consent", "frc", "wpFrc",
+  "size", "under5", "selection", "litres", "lpcd", "share", "covered", "cup",
+  "awd", "awdN", "flag", "danger", "referred", "phc", "care", "ors", "raised",
+  "concern", "cat", "urgent", "landmark", "lat", "lon"];
+const P_CHUNK = 1200, H_CHUNK = 900, P_MAX = 12000, H_MAX = 9000;
+
+const DB = { api: null, user: null, canWrite: false, ready: false,
+  meta: null, unsub: null, status: "starting" };
+
+/* Absent is null, never 0: a 0.00 mg/L reading means "no chlorine at all" and
+   must survive a round trip through the store distinct from "not measured". */
+const COUNT = new Set(["hhVisited", "hhTested", "hhPass", "under5", "litres",
+  "awd", "awdEmerg", "awdN"]);
+const NUMERIC = new Set(["frc", "stock", "faultDays", "lat", "lon", "wpFrc",
+  "size", "lpcd", "share", ...COUNT]);
+
+const packRow = (r, cols) => cols.map(c => {
+  const v = r[c];
+  return v === undefined || v === null || v === "" ? null : v;
+});
+function unpackRow(a, cols, isParent) {
+  const o = {};
+  cols.forEach((c, i) => {
+    const v = a[i];
+    if (v === null || v === undefined) o[c] = NUMERIC.has(c) ? (COUNT.has(c) ? 0 : null) : "";
+    else o[c] = NUMERIC.has(c) ? num(v) : v;
+  });
+  const reg = SITE_BY.get(o.site);
+  o.name = reg ? reg.name : (o.site || "Unknown");
+  o.lga = reg ? reg.lga : "";
+  o.band = band(o.frc);
+  if (isParent) { o.ward = reg ? reg.ward : ""; o.pri = reg ? reg.pri : 0; }
+  else o.pass = hhPass(o.frc);
+  const d = parseDay(o.date);
+  o.t = d ? d.getTime() : 0;
+  return o;
+}
+
+async function dbBoot() {
+  let api = null, usr = null;
+  try { api = await claude.use("db"); } catch (e) { api = null; }
+  try { usr = await claude.use("user"); } catch (e) { usr = null; }
+  DB.api = api; DB.user = usr;
+  if (!api) { DB.status = "off"; DB.ready = true; setShellState(); return; }
+  try {
+    const can = usr ? await usr.can("data.write") : null;
+    const edit = usr ? await usr.canEdit() : false;
+    DB.canWrite = can === null ? !!edit : (!!can || !!edit);
+  } catch (e) { DB.canWrite = false; }
+  DB.status = "on"; DB.ready = true;
+  let settled = false;
+  const timer = setTimeout(() => { if (!settled) { DB.status = "slow"; setShellState(); } }, 10000);
+  DB.unsub = api.doc("meta/dataset").onSnapshot(snap => {
+    settled = true; clearTimeout(timer); DB.status = "on";
+    const m = snap.exists ? snap.data() : null;
+    const stamp = m ? String(m.updatedAt || "") : "";
+    if (!m) { DB.meta = null; setShellState(); return; }
+    if (DB.meta && DB.meta.updatedAt === stamp && !ST.sample) { setShellState(); return; }
+    DB.meta = m; loadFromStore(m).catch(() => {});
+  }, err => {
+    settled = true; clearTimeout(timer);
+    DB.status = err && err.code === "revoked" ? "off" : "error";
+    setShellState();
+  });
+  setShellState();
+}
+
+async function loadFromStore(m) {
+  const api = DB.api; if (!api) return;
+  const pcols = Array.isArray(m.pcols) ? m.pcols : PCOLS;
+  const hcols = Array.isArray(m.hcols) ? m.hcols : HCOLS;
+  const parent = [], hh = [];
+  for (let i = 0; i < (m.parentChunks || 0); i++) {
+    const d = await api.doc("chunks/p" + i).get();
+    if (d.exists) for (const row of (d.data().rows || [])) parent.push(unpackRow(row, pcols, true));
+  }
+  for (let i = 0; i < (m.hhChunks || 0); i++) {
+    const d = await api.doc("chunks/h" + i).get();
+    if (d.exists) for (const row of (d.data().rows || [])) hh.push(unpackRow(row, hcols, false));
+  }
+  if (!parent.length && !hh.length) return;
+  ST.parent = parent; ST.hh = hh; ST.sample = false;
+  ST.notes = [];
+  ST.stored = { at: m.updatedAt || "", rows: parent.length + hh.length, by: m.uploadedBy || "" };
+  fillSiteSelect(); render();
+}
+
+async function saveToStore(parent, hh, onStep) {
+  const api = DB.api;
+  if (!api) throw { code: "not_granted", message: "No shared store on this view." };
+  const P = parent.slice().sort((a, b) => b.t - a.t).slice(0, P_MAX);
+  const H = hh.slice().sort((a, b) => b.t - a.t).slice(0, H_MAX);
+  const pc = Math.ceil(P.length / P_CHUNK), hc = Math.ceil(H.length / H_CHUNK);
+  const old = DB.meta || {};
+  const steps = pc + hc + 1; let done = 0;
+  const step = label => { done++; if (onStep) onStep(done, steps, label); };
+  for (let i = 0; i < pc; i++) {
+    await api.doc("chunks/p" + i).set({
+      rows: P.slice(i * P_CHUNK, (i + 1) * P_CHUNK).map(r => packRow(r, PCOLS)) });
+    step("visit records");
+  }
+  for (let i = 0; i < hc; i++) {
+    await api.doc("chunks/h" + i).set({
+      rows: H.slice(i * H_CHUNK, (i + 1) * H_CHUNK).map(r => packRow(r, HCOLS)) });
+    step("household records");
+  }
+  for (let i = pc; i < (old.parentChunks || 0); i++)
+    await api.doc("chunks/p" + i).delete().catch(() => {});
+  for (let i = hc; i < (old.hhChunks || 0); i++)
+    await api.doc("chunks/h" + i).delete().catch(() => {});
+  const dates = P.map(r => r.date).filter(Boolean).sort();
+  await api.doc("meta/dataset").set({
+    updatedAt: new Date().toISOString(), parentChunks: pc, hhChunks: hc,
+    parentRows: P.length, hhRows: H.length, pcols: PCOLS, hcols: HCOLS,
+    rangeFrom: dates[0] || "", rangeTo: dates[dates.length - 1] || "",
+    uploadedBy: "", trimmed: (parent.length > P_MAX || hh.length > H_MAX) ? 1 : 0 });
+  step("index");
+  return { parentRows: P.length, hhRows: H.length,
+    trimmed: parent.length > P_MAX || hh.length > H_MAX };
+}
+
+async function clearStore() {
+  const api = DB.api; if (!api) return;
+  const m = DB.meta || {};
+  for (let i = 0; i < (m.parentChunks || 0); i++)
+    await api.doc("chunks/p" + i).delete().catch(() => {});
+  for (let i = 0; i < (m.hhChunks || 0); i++)
+    await api.doc("chunks/h" + i).delete().catch(() => {});
+  await api.doc("meta/dataset").delete().catch(() => {});
+  DB.meta = null; ST.stored = null;
+}
+
+/* ── map ─────────────────────────────────────────────────────────────────────
+   No tile layer: an artifact cannot load external images. Coordinates are
+   drawn on their own plane, which is what a GPS scatter needs anyway. */
+function chartMap(P, H) {
+  const latest = latestBySite(P);
+  const pts = [...latest.values()].filter(r => r.lat != null && r.lon != null
+    && Math.abs(r.lat) <= 90 && Math.abs(r.lon) <= 180);
+  const hpts = H.filter(h => h.lat != null && h.lon != null);
+  if (!pts.length) return `<p class="hint">No GPS yet in this period. Coordinates come from
+    <b>gps_waterpoint</b> on each visit and <b>hh_gps</b> on each household, so the map fills
+    in as records arrive.</p>`;
+  const all = pts.concat(hpts);
+  let lat0 = Math.min(...all.map(p => p.lat)), lat1 = Math.max(...all.map(p => p.lat));
+  let lon0 = Math.min(...all.map(p => p.lon)), lon1 = Math.max(...all.map(p => p.lon));
+  const padLat = Math.max((lat1 - lat0) * 0.08, 0.004), padLon = Math.max((lon1 - lon0) * 0.08, 0.004);
+  lat0 -= padLat; lat1 += padLat; lon0 -= padLon; lon1 += padLon;
+  const midLat = (lat0 + lat1) / 2, kx = Math.cos(midLat * Math.PI / 180);
+  const W = 1000, PADL = 14, PADT = 14, PADB = 34, PADR = 14;
+  const spanX = (lon1 - lon0) * kx, spanY = lat1 - lat0;
+  const plotW = W - PADL - PADR;
+  const plotH = Math.max(260, Math.min(620, plotW * (spanY / (spanX || 1e-6))));
+  const H_ = plotH + PADT + PADB;
+  const x = lon => PADL + plotW * ((lon - lon0) * kx / (spanX || 1e-6));
+  const y = lat => PADT + plotH * (1 - (lat - lat0) / (spanY || 1e-6));
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H_}" role="img"
+    aria-label="Water points and households by GPS position">`;
+  s += `<rect x="${PADL}" y="${PADT}" width="${plotW}" height="${plotH}" rx="8"
+    fill="var(--plane)" stroke="var(--rule)"/>`;
+  for (let i = 1; i < 5; i++) {
+    s += `<line x1="${PADL}" y1="${(PADT + plotH * i / 5).toFixed(1)}" x2="${PADL + plotW}"
+      y2="${(PADT + plotH * i / 5).toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<line x1="${(PADL + plotW * i / 5).toFixed(1)}" y1="${PADT}"
+      x2="${(PADL + plotW * i / 5).toFixed(1)}" y2="${PADT + plotH}"
+      stroke="var(--grid)" stroke-width="1"/>`;
+  }
+  for (const h of hpts) s += `<circle cx="${x(h.lon).toFixed(1)}" cy="${y(h.lat).toFixed(1)}"
+    r="2.6" fill="var(--${h.pass === false ? "crit" : "ok"})" opacity=".5"${tipAttr(
+    tipHTML((h.hhCode || "Household") + " — " + h.name,
+    [["In the home", h.frc == null ? "not tested" : n2(h.frc) + " mg/L"],
+     ["Result", h.pass == null ? "–" : h.pass ? "At or above 0.2" : "Below 0.2"],
+     ["Visited", dlong(h.date)]]))}/>`;
+  for (const r of pts) {
+    const sev = r.band ? BAND[r.band].sev
+      : (r.status === "faulty" || r.status === "not_today" ? "crit" : "watch");
+    s += `<circle cx="${x(r.lon).toFixed(1)}" cy="${y(r.lat).toFixed(1)}" r="8"
+      fill="var(--${sev})" stroke="var(--surface)" stroke-width="2"${tipAttr(
+      tipHTML(r.name + " (" + r.site + ")",
+      [["Latest reading", r.frc == null ? "no reading" : n2(r.frc) + " mg/L"],
+       ["Band", r.band ? BAND[r.band].label : "–"],
+       ["Visit", (r.round === "evening" ? "Evening" : "Morning") + " " + dshort(r.date)],
+       ["Households near", String(hpts.filter(h => h.site === r.site).length)]]))}/>`;
+  }
+  /* scale bar: 1 degree of latitude is about 111 km */
+  const kmPerPx = (spanY * 111) / plotH;
+  const target = [1, 2, 5, 10, 20].find(k => k / kmPerPx > 60) || 20;
+  const barPx = target / kmPerPx;
+  const by = PADT + plotH + 18;
+  s += `<line x1="${PADL + 4}" y1="${by}" x2="${(PADL + 4 + barPx).toFixed(1)}" y2="${by}"
+    stroke="var(--ink-3)" stroke-width="2"/>`;
+  s += `<line x1="${PADL + 4}" y1="${by - 4}" x2="${PADL + 4}" y2="${by + 4}"
+    stroke="var(--ink-3)" stroke-width="2"/>`;
+  s += `<line x1="${(PADL + 4 + barPx).toFixed(1)}" y1="${by - 4}"
+    x2="${(PADL + 4 + barPx).toFixed(1)}" y2="${by + 4}" stroke="var(--ink-3)" stroke-width="2"/>`;
+  s += `<text x="${(PADL + 12 + barPx).toFixed(1)}" y="${by + 4}" font-size="11">${target} km</text>`;
+  s += `</svg><div class="lgd">
+    <span><i style="background:var(--ok);border-radius:50%"></i>Water point on target</span>
+    <span><i style="background:var(--watch);border-radius:50%"></i>Drifting</span>
+    <span><i style="background:var(--high);border-radius:50%"></i>Outside range</span>
+    <span><i style="background:var(--crit);border-radius:50%"></i>No chlorine or not operating</span>
+    <span style="color:var(--ink-3)">Small dots are households</span></div>`;
+  return s;
+}
+
+function renderMap() {
+  const P = viewP(), H = viewH(), latest = latestBySite(P);
+  const withGps = [...latest.values()].filter(r => r.lat != null).length;
+  const hGps = H.filter(h => h.lat != null).length;
+  let s = `<div class="sect"><div class="grid g-kpi">`;
+  s += kpi(withGps ? "ok" : "watch", "Points located", withGps + " of " + latest.size, "",
+    "From gps_waterpoint on the latest visit");
+  s += kpi(hGps ? "ok" : "", "Households located", String(hGps), "",
+    `of ${H.length} visited in this period`);
+  s += kpi("", "Area covered", String(scopeSites().length), "points",
+    LGA_FULL[ST.lga] || "All three LGAs");
+  s += kpi("", "Households per point", latest.size
+    ? n1(H.length / latest.size) : "–", "", "Average in this period");
+  s += `</div></div>`;
+  s += `<div class="sect">${card("Where the points and households are",
+    "Positions as recorded in the field. Point colour is the latest reading; small dots are households.",
+    chartMap(P, H))}</div>`;
+  return s;
+}
+
+/* ── this-browser fallback ───────────────────────────────────────────────────
+   On claude.ai the dataset lives in the shared store and everyone with the
+   link sees it. A self-hosted copy has no such store, so the upload is kept
+   in this browser only. Every access is wrapped: storage can be blocked,
+   full, or cleared, and the page must work without it. */
+const LS_KEY = "ilc.frc.dataset.v1";
+
+function lsAvailable() {
+  try {
+    const k = "__ilc_probe__";
+    window.localStorage.setItem(k, "1");
+    window.localStorage.removeItem(k);
+    return true;
+  } catch (e) { return false; }
+}
+
+function lsSave(parent, hh) {
+  if (!lsAvailable()) return { ok: false, reason: "unavailable" };
+  const P = parent.slice().sort((a, b) => b.t - a.t).slice(0, P_MAX);
+  const H = hh.slice().sort((a, b) => b.t - a.t).slice(0, H_MAX);
+  const body = JSON.stringify({ v: 1, at: new Date().toISOString(),
+    pcols: PCOLS, hcols: HCOLS,
+    p: P.map(r => packRow(r, PCOLS)), h: H.map(r => packRow(r, HCOLS)) });
+  try {
+    window.localStorage.setItem(LS_KEY, body);
+    return { ok: true, at: new Date().toISOString(),
+      trimmed: parent.length > P_MAX || hh.length > H_MAX };
+  } catch (e) {
+    try { window.localStorage.removeItem(LS_KEY); } catch (e2) {}
+    return { ok: false, reason: (e && e.name === "QuotaExceededError")
+      || /quota/i.test(String(e && e.message)) ? "full" : "unavailable" };
+  }
+}
+
+function lsLoad() {
+  if (!lsAvailable()) return null;
+  let raw = null;
+  try { raw = window.localStorage.getItem(LS_KEY); } catch (e) { return null; }
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw);
+    if (!o || o.v !== 1 || !Array.isArray(o.p)) return null;
+    const pcols = Array.isArray(o.pcols) ? o.pcols : PCOLS;
+    const hcols = Array.isArray(o.hcols) ? o.hcols : HCOLS;
+    return { at: o.at || "",
+      parent: o.p.map(r => unpackRow(r, pcols, true)),
+      hh: (o.h || []).map(r => unpackRow(r, hcols, false)) };
+  } catch (e) {
+    try { window.localStorage.removeItem(LS_KEY); } catch (e2) {}
+    return null;
+  }
+}
+
+function lsClear() {
+  try { window.localStorage.removeItem(LS_KEY); } catch (e) {}
+}
+
+/* Restore a remembered dataset when there is no shared store on this view.
+   Called after the first paint, so the page never waits on storage. */
+function bootLocalStore() {
+  if (DB.api) return false;
+  const got = lsLoad();
+  if (!got || (!got.parent.length && !got.hh.length)) return false;
+  ST.parent = got.parent; ST.hh = got.hh; ST.sample = false;
+  ST.pending = null; ST.stored = null;
+  ST.local = { at: got.at };
+  ST.notes = [];
+  fillSiteSelect(); render();
+  return true;
+}
+
+/* ── rendering ──────────────────────────────────────────────────────────── */
+function kpi(cls, label, value, unit, sub) {
+  return `<div class="kpi ${cls}"><dt>${esc(label)}</dt>
+    <dd>${esc(value)}${unit ? `<small> ${esc(unit)}</small>` : ""}</dd>
+    ${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+}
+const badge = (sev, word) => `<span class="bdg ${sev}"><i></i>${esc(word || SEV_WORD[sev])}</span>`;
+function card(title, note, body) {
+  return `<div class="card"><div class="sect-h"><h2>${esc(title)}</h2>
+    ${note ? `<p>${esc(note)}</p>` : ""}</div>${body}</div>`;
+}
+
+function renderOverview() {
+  const P = viewP(), H = viewH(), latest = latestBySite(P), sites = scopeSites();
+  const reporting = sites.filter(s => latest.has(s.code)).length;
+  const reads = P.filter(r => r.band);
+  const onTarget = reads.filter(r => r.band === "target").length;
+  const zero = [...latest.values()].filter(r => r.band === "fault").length;
+  const down = [...latest.values()].filter(r =>
+    r.status === "faulty" || r.status === "not_today").length;
+  const tested = H.filter(h => h.pass != null);
+  const passed = tested.filter(h => h.pass).length;
+  const lpcd = mean(H.map(h => h.lpcd).filter(v => v != null));
+  const awd = H.filter(h => h.awd === "yes").reduce((a, h) => a + (h.awdN || 1), 0);
+  const emerg = H.filter(h => h.flag === "EMERGENCY" || (h.awd === "yes" && h.danger)).length;
+  const tgtPct = reads.length ? 100 * onTarget / reads.length : null;
+
+  let s = `<div class="sect"><div class="grid g-kpi">`;
+  s += kpi(reporting === sites.length ? "ok" : reporting >= sites.length * .8 ? "watch" : "high",
+    "Points reporting", reporting + " of " + sites.length, "",
+    `${sites.length - reporting} silent in this period`);
+  s += kpi(tgtPct == null ? "" : tgtPct >= 80 ? "ok" : tgtPct >= 60 ? "watch" : "high",
+    "Readings on target", pct(tgtPct), "",
+    `${onTarget} of ${reads.length} between 0.3 and 0.8 mg/L`);
+  s += kpi(zero ? "crit" : "ok", "No chlorine at all", String(zero), zero === 1 ? "point" : "points",
+    zero ? "Untreated water flowing — act today" : "Every point carrying a residual");
+  s += kpi(down ? "crit" : "ok", "Not operating", String(down), down === 1 ? "point" : "points",
+    down ? "Faulty or did not open" : "All points running");
+  s += kpi(tested.length ? (100 * passed / tested.length >= 70 ? "ok"
+    : 100 * passed / tested.length >= 50 ? "watch" : "high") : "",
+    "Stored water passing", pct(tested.length ? 100 * passed / tested.length : null), "",
+    `${passed} of ${tested.length} households at or above 0.2 mg/L`);
+  s += kpi(lpcd == null ? "" : lpcd >= 15 ? "ok" : lpcd >= 7.5 ? "high" : "crit",
+    "Water per person", n1(lpcd), "L per day",
+    lpcd == null ? "No water-use readings yet" : "Sphere minimum is 15 L");
+  s += kpi(awd ? (emerg ? "crit" : "high") : "ok", "Children with diarrhoea",
+    String(awd), awd === 1 ? "child" : "children",
+    emerg ? `${emerg} with danger signs` : awd ? "All referred or pending follow-up" : "None reported");
+  s += kpi("", "Households visited", String(H.length), "",
+    `${H.filter(h => h.selection === "traced").length} traced from their water point`);
+  s += `</div></div>`;
+
+  s += `<div class="sect">${card("Where the readings fall",
+    "Every reading in the period, banded against the 0.3 to 0.8 mg/L target",
+    chartBands(P))}</div>`;
+  s += `<div class="sect">${card("Residual through the day",
+    "Average across the points in scope, morning against evening", chartTrend(P))}</div>`;
+  s += `<div class="sect">${card("Reporting coverage",
+    "How many of the points in scope sent a record each day", chartCoverage(P))}</div>`;
+  return s;
+}
+
+function renderAlerts() {
+  const all = buildAlerts();
+  const counts = { crit: 0, high: 0, watch: 0 };
+  all.forEach(a => counts[a.sev]++);
+  const shown = ST.sev === "all" ? all : all.filter(a => a.sev === ST.sev);
+  let s = `<div class="sect"><div class="grid g-kpi">`;
+  s += kpi("crit", "Critical", String(counts.crit), "", "Act today");
+  s += kpi("high", "High", String(counts.high), "", "Act this week");
+  s += kpi("watch", "Watch", String(counts.watch), "", "Keep an eye on it");
+  s += kpi("", "Health lane", String(all.filter(a => a.lane === "health").length), "",
+    "Routed to the health focal point");
+  s += `</div></div>`;
+
+  if (!all.length) {
+    s += `<div class="sect">${card("Nothing to act on", "",
+      `<p class="hint">No rule fired for the points and period in scope. Widen the period
+       or clear the filters to check further back.</p>`)}</div>`;
+    return s;
+  }
+  const segBtn = (v, label) => `<button type="button" data-v="${v}"
+    aria-pressed="${String(ST.sev === v)}">${esc(label)}</button>`;
+  s += `<div class="sect"><div class="sect-h"><h2>What needs attention</h2>
+    <p>Most severe first. Each message is ready to paste into WhatsApp or SMS.</p></div>
+    <div class="fg" style="margin-bottom:12px"><span>Show</span>
+      <div class="seg" id="f-sev" role="group" aria-label="Filter alerts by severity">
+      ${segBtn("all", "All " + all.length)}${segBtn("crit", "Critical " + counts.crit)}
+      ${segBtn("high", "High " + counts.high)}${segBtn("watch", "Watch " + counts.watch)}
+      </div></div>
+    <div class="alist">`;
+  if (!shown.length) s += `<p class="hint">No alerts at that level.</p>`;
+  for (const a of shown.slice(0, 150)) {
+    const sc = SITE_BY.get(a.site);
+    s += `<div class="al ${a.sev}"><div class="sp"></div><div class="al-b">
+      <h3>${esc(a.title)}</h3><p>${esc(a.detail)}</p>
+      <p style="margin-top:4px"><b>Action.</b> ${esc(a.act)}</p>
+      <div class="al-m">${badge(a.sev)}
+        ${a.lane === "health" ? `<span class="lane health">Health</span>`
+          : `<span class="lane">Water</span>`}
+        <span class="c">${esc(sc ? sc.code + " · " + sc.name : a.site)}</span>
+        ${a.r && a.r.date ? `<span class="c dt">${esc(dshort(a.r.date))}</span>` : ""}
+      </div></div>
+      <div class="al-a"><button class="btn copy" type="button"
+        data-copy="${esc(a.msg)}">Copy message</button></div></div>`;
+  }
+  if (shown.length > 150) s += `<p class="hint">Showing the first 150 of
+    ${shown.length}. Narrow the period or the LGA to see the rest.</p>`;
+  s += `</div></div>`;
+
+  const digest = `CHLORINATION WATCH — ${dlong(iso(new Date(refDay())))}\n` +
+    `${LGA_FULL[ST.lga] || "All LGAs"} · ${ST.days ? "last " + ST.days + " days" : "all data"}\n` +
+    `Critical ${counts.crit} · High ${counts.high} · Watch ${counts.watch}\n\n` +
+    all.filter(a => a.sev !== "watch").slice(0, 40).map((a, i) => {
+      const sc = SITE_BY.get(a.site);
+      return `${i + 1}. [${SEV_WORD[a.sev].toUpperCase()}] ${a.title} — ` +
+        `${sc ? sc.name + " (" + sc.code + ")" : a.site}\n   ${a.detail}\n   Action: ${a.act}`;
+    }).join("\n\n");
+  s += `<div class="sect">${card("Daily digest",
+    "Critical and high alerts, ready to paste into the supervisors' group",
+    `<div class="msg" id="digest">${esc(digest)}</div>
+     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+       <button class="btn btn-p copy" type="button" data-copy="${esc(digest)}">Copy digest</button>
+     </div>
+     <p class="hint">This page cannot send messages by itself. Paste the digest into
+     WhatsApp, SMS or email, or set up the Kobo REST Service relay for automatic sending.</p>`)}</div>`;
+  return s;
+}
+
+function renderPoints() {
+  const P = viewP(), latest = latestBySite(P), ref = refDay();
+  const rows = scopeSites().map(s => {
+    const r = latest.get(s.code);
+    const all = P.filter(p => p.site === s.code && p.band);
+    const tgt = all.filter(p => p.band === "target").length;
+    return { s, r, reads: all.length, tgtPct: all.length ? 100 * tgt / all.length : null,
+      ago: r ? Math.round((ref - r.t) / dayMs) : null,
+      sev: r ? (r.band ? BAND[r.band].sev : (r.status === "faulty"
+        || r.status === "not_today" ? "crit" : "watch")) : "watch" };
+  });
+  const k = ST.sort.k, dir = ST.sort.d === "a" ? 1 : -1;
+  const val = o => ({ site: o.s.code, name: o.s.name, lga: o.s.lga,
+    frc: o.r && o.r.frc != null ? o.r.frc : -1, tgt: o.tgtPct == null ? -1 : o.tgtPct,
+    stock: o.r && o.r.stock != null ? o.r.stock : 1e6,
+    ago: o.ago == null ? 1e6 : o.ago, sev: SEV[o.sev] }[k]);
+  rows.sort((a, b) => { const x = val(a), y = val(b);
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * dir
+      || a.s.code.localeCompare(b.s.code); });
+
+  const th = (key, label, cls) => `<th class="s ${cls || ""}"
+    data-k="${key}"${ST.sort.k === key ? ` data-dir="${ST.sort.d}"` : ""}>${esc(label)}</th>`;
+  let s = `<div class="sect"><div class="sect-h"><h2>All water points in scope</h2>
+    <p>${rows.length} points &middot; latest record for each</p></div>
+    <div class="tw"><table><thead><tr>
+      ${th("site", "Code")}${th("name", "Water point")}${th("lga", "LGA")}
+      ${th("frc", "Latest mg/L", "n")}<th>Band</th><th>Visit</th>
+      ${th("tgt", "On target", "n")}${th("stock", "Stock days", "n")}
+      ${th("ago", "Last report", "n")}</tr></thead><tbody>`;
+  for (const o of rows) {
+    const r = o.r;
+    s += `<tr><td class="c">${esc(o.s.code)}${o.s.pri ? ' <span class="bdg mute"><i></i>P</span>' : ""}</td>
+      <td class="nm">${esc(o.s.name)}<span>${esc(o.s.ward)}</span></td>
+      <td>${esc(LGA_FULL[o.s.lga] || o.s.lga)}</td>
+      <td class="n">${r && r.frc != null ? n2(r.frc) : "–"}</td>
+      <td>${r ? (r.band ? badge(BAND[r.band].sev, BAND[r.band].short)
+        : badge(r.status === "faulty" ? "crit" : "watch",
+          r.status === "faulty" ? "Faulty" : r.status === "not_today" ? "Did not open"
+          : r.status === "later" ? "Not open yet" : "No reading"))
+        : badge("watch", "No report")}</td>
+      <td style="font-size:12px;color:var(--ink-2)">${r ? esc(
+        (r.round === "evening" ? "Evening" : "Morning") + " · " + dshort(r.date)) : "–"}</td>
+      <td class="n">${pct(o.tgtPct)}</td>
+      <td class="n">${r && r.stock != null ? r.stock : "–"}</td>
+      <td class="n">${o.ago == null ? "–" : o.ago === 0 ? "today"
+        : o.ago + "d"}</td></tr>`;
+  }
+  s += `</tbody></table></div></div>`;
+  s += `<div class="sect">${card("Residual through the day",
+    "Average across the points in scope", chartTrend(P))}</div>`;
+  return s;
+}
+
+function renderHouseholds() {
+  const H = viewH();
+  const tested = H.filter(h => h.pass != null), passed = tested.filter(h => h.pass).length;
+  const lpcd = mean(H.map(h => h.lpcd).filter(v => v != null));
+  const share = mean(H.map(h => h.share).filter(v => v != null));
+  const people = H.reduce((a, h) => a + (h.size || 0), 0);
+  let s = `<div class="sect"><div class="grid g-kpi">`;
+  s += kpi("", "Households visited", String(H.length), "", `${people} people covered`);
+  s += kpi(tested.length ? (100 * passed / tested.length >= 70 ? "ok"
+    : 100 * passed / tested.length >= 50 ? "watch" : "high") : "",
+    "Stored water passing", pct(tested.length ? 100 * passed / tested.length : null), "",
+    `${passed} of ${tested.length} at or above 0.2 mg/L`);
+  s += kpi(lpcd == null ? "" : lpcd >= 15 ? "ok" : lpcd >= 7.5 ? "high" : "crit",
+    "Water per person", n1(lpcd), "L per day", "Sphere minimum is 15 L");
+  s += kpi(share == null ? "" : share >= 70 ? "ok" : "watch",
+    "Water from this point", pct(share), "", "Share of containers fetched here");
+  s += `</div></div>`;
+
+  s += `<div class="sect">${card("Residual lost between the point and the cup",
+    "Each dot is one household. Dots below the dashed line are losing the residual in transport or storage.",
+    chartDecay(H))}</div>`;
+  s += `<div class="sect">${card("Water use by point",
+    "Average litres per person per day, lowest 16 points first", chartLpcd(H))}</div>`;
+
+  /* traced against randomly selected */
+  const groups = ["traced", "traced_other", "random", "revisit"];
+  const g = groups.map(k => {
+    const rows = H.filter(h => h.selection === k), t = rows.filter(h => h.pass != null);
+    return { k, n: rows.length, tested: t.length, pass: t.filter(h => h.pass).length,
+      lpcd: mean(rows.map(h => h.lpcd).filter(v => v != null)) };
+  }).filter(x => x.n);
+  if (g.length) {
+    let t = `<div class="tw"><table><thead><tr><th>How the household was chosen</th>
+      <th class="n">Households</th><th class="n">Tested</th><th class="n">At or above 0.2</th>
+      <th class="n">Pass rate</th><th class="n">L per person</th></tr></thead><tbody>`;
+    for (const x of g) {
+      const rate = x.tested ? 100 * x.pass / x.tested : null;
+      t += `<tr><td class="nm">${esc(SELECTION_LABEL[x.k] || x.k)}</td>
+        <td class="n">${x.n}</td><td class="n">${x.tested}</td><td class="n">${x.pass}</td>
+        <td class="n">${pct(rate)}</td><td class="n">${n1(x.lpcd)}</td></tr>`;
+    }
+    t += `</tbody></table></div>`;
+    s += `<div class="sect">${card("Traced against randomly selected",
+      "Keep these apart: a random household may not use the chlorinated point at all", t)}</div>`;
+  }
+  return s;
+}
+
+function renderChild() {
+  const H = viewH();
+  const cases = H.filter(h => h.awd === "yes");
+  const children = cases.reduce((a, h) => a + (h.awdN || 1), 0);
+  const emerg = cases.filter(h => h.flag === "EMERGENCY" || h.danger);
+  const referred = cases.filter(h => h.referred === "yes").length;
+  const under5 = H.reduce((a, h) => a + (h.under5 || 0), 0);
+  let s = `<div class="banner info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+    <path d="M12 16v-5M12 8h.01"/></svg>
+    <div><b>Watery diarrhoea in a child under five is a cholera signal in Borno.</b>
+    Every case here needs a referral confirmed, not just recorded. Households are identified
+    by code and landmark only — keep this view to the people who need it.</div></div>`;
+  s += `<div class="sect"><div class="grid g-kpi">`;
+  s += kpi(children ? (emerg.length ? "crit" : "high") : "ok", "Children affected",
+    String(children), children === 1 ? "child" : "children",
+    `in ${cases.length} household(s) of ${H.length} visited`);
+  s += kpi(emerg.length ? "crit" : "ok", "With danger signs", String(emerg.length), "",
+    emerg.length ? "Confirm each one reached a health centre" : "None recorded");
+  s += kpi(cases.length ? (referred === cases.length ? "ok" : "high") : "",
+    "Referral recorded", cases.length ? referred + " of " + cases.length : "–", "",
+    cases.length && referred < cases.length
+      ? `${cases.length - referred} case(s) with no referral` : "Every case referred");
+  s += kpi("", "Children under five", String(under5), "",
+    "Living in the households visited");
+  s += `</div></div>`;
+
+  if (!cases.length) {
+    s += `<div class="sect">${card("No cases in this period", "",
+      `<p class="hint">No household in scope reported a child under five passing watery
+       stool three or more times in a day.</p>`)}</div>`;
+    return s;
+  }
+  let t = `<div class="tw"><table><thead><tr><th>Status</th><th>Household</th>
+    <th>Water point</th><th class="n">Children</th><th>ORS and zinc</th>
+    <th>Referred to</th><th>Date</th></tr></thead><tbody>`;
+  for (const h of cases.sort((a, b) => (b.t || 0) - (a.t || 0))) {
+    const em = h.flag === "EMERGENCY" || h.danger;
+    t += `<tr><td>${em ? badge("crit", "Danger signs")
+      : h.referred === "no" ? badge("high", "No referral") : badge("watch", "Referred")}</td>
+      <td class="nm">${esc(h.hhCode || "–")}<span>${esc(h.landmark || "")}</span></td>
+      <td class="nm">${esc(h.name)}<span>${esc(LGA_FULL[h.lga] || h.lga)}</span></td>
+      <td class="n">${h.awdN || 1}</td>
+      <td>${h.ors === "yes" ? badge("ok", "Given") : h.ors === "no"
+        ? badge("high", "Not given") : "–"}</td>
+      <td style="font-size:12px">${esc(h.phc || (h.referred === "no" ? "—" : "Recorded"))}</td>
+      <td class="c">${esc(dshort(h.date))}</td></tr>`;
+  }
+  t += `</tbody></table></div>`;
+  s += `<div class="sect">${card("Cases recorded", "Most recent first", t)}</div>`;
+  return s;
+}
+
+/* ── shell ──────────────────────────────────────────────────────────────── */
+const PANELS = { over: renderOverview, alert: renderAlerts, points: renderPoints,
+  hh: renderHouseholds, map: renderMap, child: renderChild };
+
+function setShellState() {
+  const el = $("state"); if (!el) return;
+  let s = "";
+  if (ST.saving) {
+    s = `<div class="banner info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l3 2"/></svg>
+      <div><b>Saving to this page.</b> ${esc(ST.saving)}</div></div>`;
+  } else if (ST.pending) {
+    const p = ST.pending;
+    s = `<div class="banner samp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 9 5-5 5 5"/>
+      <path d="M12 4v12"/></svg>
+      <div><b>${p.parent.length} visit records and ${p.hh.length} household records read.</b>
+      ${DB.canWrite && DB.api
+        ? `Save them to this page so everyone with the link sees them, or keep them on this
+           device only. Saved readings include household codes, landmarks and the child
+           health fields.`
+        : `This copy has no shared store, so the figures stay with you. Remember them in
+           this browser for next time, or show them for this visit only.`}
+      <div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap">
+        ${DB.canWrite && DB.api
+          ? `<button class="btn btn-p" id="save-store" type="button">Save to this page</button>
+             <button class="btn" id="keep-local" type="button">Keep on this device</button>`
+          : `<button class="btn btn-p" id="save-local" type="button">Remember in this browser</button>
+             <button class="btn" id="keep-local" type="button">Just this visit</button>`}
+      </div></div></div>`;
+  } else if (ST.sample) {
+    s = `<div class="banner samp"><svg viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>
+      <path d="M12 9v4M12 17h.01"/></svg>
+      <div><b>Sample data, not your programme.</b> These figures are generated so you can see
+      how the dashboard behaves. Upload your Kobo export to replace them.</div>
+      <button class="btn" id="clear-btn" type="button">Clear</button></div>`;
+  } else if (ST.stored) {
+    const extra = DB.canWrite ? ` <button class="btn" id="clear-store" type="button"
+      style="margin-left:8px">Remove saved data</button>` : "";
+    let when = "just now";
+    try { if (ST.stored.at) when = new Date(ST.stored.at).toLocaleString("en-GB",
+      { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) {}
+    s = `<div class="banner info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+      <path d="m9 12 2 2 4-4"/></svg>
+      <div><b>Saved to this page.</b> Last updated ${esc(when)}. Everyone with the link sees
+      these figures.${extra}</div></div>`;
+  } else if (ST.local) {
+    let when = "";
+    try { if (ST.local.at) when = " on " + new Date(ST.local.at).toLocaleString("en-GB",
+      { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) {}
+    s = `<div class="banner info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+      <path d="m9 12 2 2 4-4"/></svg>
+      <div><b>Remembered in this browser.</b> Uploaded${esc(when)}. Nobody else sees these
+      figures — anyone opening this site uploads their own export.
+      <button class="btn" id="forget-local" type="button" style="margin-left:8px">Forget</button>
+      </div></div>`;
+  } else if (ST.notes.length) {
+    s = `<div class="banner info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+      <path d="M12 16v-5M12 8h.01"/></svg>
+      <div><b>Loaded for this visit only.</b> ${esc(ST.notes.join(" "))}</div></div>`;
+  }
+  if (DB.status === "slow" && !ST.stored) s += `<div class="banner info">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3 2"/></svg>
+    <div>Saved data on this page could not be reached yet. Anything shown may be out of date.</div></div>`;
+  el.innerHTML = s;
+}
+
+function renderEmpty() {
+  return `<div class="empty"><h2>Upload your Kobo export</h2>
+    <p>Export the <b>ilc_frc_monitoring</b> project from KoboToolbox as XLSX or CSV and drop
+    it here. The submissions sheet and the <b>household</b> repeat sheet are both read; you
+    can drop the two CSV files together.</p>
+    <button class="btn btn-p" id="empty-upload" type="button">Choose files</button>
+    <button class="btn" id="empty-sample" type="button" style="margin-left:8px">See sample data</button>
+    <div class="drop" id="drop">Or drag the export onto this page</div>
+    <p class="hint">In Kobo: <b>Data &rsaquo; Downloads &rsaquo; XLSX</b>, with
+    &ldquo;Include groups in headers&rdquo; either on or off &mdash; both are handled.</p></div>`;
+}
+
+function render() {
+  setShellState();
+  const has = ST.parent.length || ST.hh.length;
+  for (const k of Object.keys(PANELS)) {
+    const el = $("p-" + k);
+    el.hidden = k !== ST.tab;
+    if (k === ST.tab) el.innerHTML = has ? PANELS[k]() : renderEmpty();
+  }
+  const al = has ? buildAlerts() : [];
+  const crit = al.filter(a => a.sev === "crit").length;
+  const cA = $("c-alert"); cA.textContent = String(al.length);
+  cA.className = "cnt" + (crit ? " hot" : "");
+  const kids = has ? viewH().filter(h => h.awd === "yes").length : 0;
+  const cC = $("c-child"); cC.textContent = String(kids);
+  cC.className = "cnt" + (kids ? " hot" : "");
+  $("asof").textContent = has
+    ? "As of " + dlong(iso(new Date(refDay()))) + " · " + ST.parent.length + " visits · "
+      + ST.hh.length + " households"
+    : "No data loaded";
+  $("sub").textContent = has
+    ? `${scopeSites().length} points in scope · ${LGA_FULL[ST.lga] || "all LGAs"}`
+    : "Borno inline chlorination · 64 water points";
+}
+
+function fillSiteSelect() {
+  const sel = $("f-site"), cur = ST.site;
+  sel.innerHTML = `<option value="all">All water points</option>` +
+    SITES.filter(s => ST.lga === "all" || s.lga === ST.lga)
+      .map(s => `<option value="${esc(s.code)}">${esc(s.code)} — ${esc(s.name)}</option>`).join("");
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : "all";
+  ST.site = sel.value;
+}
+
+/* ── sample data ────────────────────────────────────────────────────────── */
+function loadSample() {
+  let seed = 20261103;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  /* Approximate LGA centres. Sample only — a real upload carries the GPS
+     recorded at each point and each household. */
+  const CENTRE = { MMC: [11.833, 13.151], Jere: [11.872, 13.228], Konduga: [11.658, 13.414] };
+  const SPREAD = { MMC: 0.030, Jere: 0.042, Konduga: 0.055 };
+  const SITE_GPS = {};
+  for (const sx of SITES) {
+    const c = CENTRE[sx.lga] || CENTRE.MMC, sp = SPREAD[sx.lga] || 0.03;
+    SITE_GPS[sx.code] = [c[0] + (rnd() - 0.5) * 2 * sp, c[1] + (rnd() - 0.5) * 2 * sp];
+  }
+  const pickOne = a => a[Math.floor(rnd() * a.length)];
+  const P = [], H = [], today = Date.now(), DAYS = 16;
+  const broken = new Set([SITES[7].code, SITES[23].code, SITES[48].code]);
+  const weak = new Set([SITES[3].code, SITES[11].code, SITES[31].code, SITES[55].code]);
+  let hhSeq = 1;
+  for (let d = DAYS - 1; d >= 0; d--) {
+    const t = today - d * dayMs, date = iso(new Date(t));
+    for (const s of SITES) {
+      if (rnd() < 0.06) continue;                              // missed day
+      for (const round of ["morning", "evening"]) {
+        if (round === "evening" && rnd() < 0.1) continue;
+        let status = "open_now", frc = null, unit = "running_ok";
+        if (broken.has(s.code) && d < 11) { status = "faulty"; unit = "out_of_service"; }
+        else if (rnd() < 0.03) { status = "later"; }
+        else {
+          frc = weak.has(s.code)
+            ? 0.05 + rnd() * 0.3
+            : 0.3 + rnd() * 0.48 + (rnd() < 0.08 ? (rnd() < 0.5 ? -0.25 : 0.7) : 0);
+          if (rnd() < 0.012) frc = 0;
+          if (rnd() < 0.015) { unit = "not_dosing"; frc = Math.min(frc, 0.08); }
+          frc = Math.max(0, Math.round(frc * 100) / 100);
+        }
+        const faultDays = status === "faulty" ? 11 - d : null;
+        const rec = { idx: s.code + date + round, date, t, round, site: s.code, name: s.name,
+          lga: s.lga, ward: s.ward, pri: s.pri, reporter: "R-" + (10 + (s.code.charCodeAt(5) % 40)),
+          status, unit, frc, band: band(frc),
+          stock: Math.max(2, Math.round(6 + rnd() * 34 - (weak.has(s.code) ? 4 : 0))),
+          faultDays, faultSince: faultDays ? iso(new Date(t - faultDays * dayMs)) : "",
+          board: rnd() < 0.9 ? "yes" : "no", duty: rnd() < 0.93 ? "yes" : "no",
+          hhVisited: 0, hhTested: 0, hhPass: 0, under5: 0, litres: 0, awd: 0, awdEmerg: 0,
+          lat: SITE_GPS[s.code][0], lon: SITE_GPS[s.code][1] };
+        /* household round roughly once a week per point */
+        if (round === "evening" && status !== "faulty" && (d % 7) === (s.code.charCodeAt(5) % 7)) {
+          const n = 8 + Math.floor(rnd() * 3);
+          for (let i = 0; i < n; i++) {
+            const sel = rnd() < 0.62 ? "traced" : rnd() < 0.5 ? "random" : "revisit";
+            const size = 4 + Math.floor(rnd() * 8);
+            const u5 = Math.min(size, Math.floor(rnd() * 3));
+            const cans = 2 + Math.floor(rnd() * 5);
+            const litres = cans * 20;
+            const loss = 0.1 + rnd() * 0.3;
+            let hfrc = frc == null ? null
+              : Math.max(0, Math.round((frc - loss - (sel === "random" ? 0.12 : 0)) * 100) / 100);
+            if (rnd() < 0.05) hfrc = 0;
+            const awdCase = rnd() < 0.055 && u5 > 0;
+            const danger = awdCase && rnd() < 0.22;
+            const referred = awdCase ? (danger ? "yes" : rnd() < 0.78 ? "yes" : "no") : "";
+            H.push({ parent: rec.idx, hhCode: "H-" + String(hhSeq++).padStart(4, "0"),
+              site: s.code, name: s.name, lga: s.lga, date, t, round,
+              consent: rnd() < 0.95 ? "yes" : "refused",
+              frc: hfrc, band: band(hfrc), pass: hhPass(hfrc), wpFrc: frc,
+              size, under5: u5, selection: sel, litres, lpcd: Math.round(litres / size * 10) / 10,
+              share: sel === "traced" ? 70 + Math.floor(rnd() * 30) : 20 + Math.floor(rnd() * 50),
+              covered: rnd() < 0.82 ? "yes" : "no", cup: rnd() < 0.7 ? "yes" : "no",
+              awd: awdCase ? "yes" : "no", awdN: awdCase ? 1 + Math.floor(rnd() * 2) : 0,
+              flag: awdCase ? (danger ? "EMERGENCY" : "REFER") : "",
+              danger: danger ? "sunken_eyes" : "", referred,
+              phc: referred === "yes" ? pickOne(["Maisandari PHC", "Bolori II PHC",
+                "Dusuman PHC", "Auno PHC", "Gwange III PHC"]) : "",
+              care: awdCase ? pickOne(["phc", "chemist", "home"]) : "",
+              ors: awdCase ? (rnd() < 0.62 ? "yes" : "no") : "",
+              raised: rnd() < 0.3 ? "yes" : "no",
+              concern: rnd() < 0.3 ? pickOne([
+                "The water smells of chlorine in the afternoon",
+                "The queue is too long before school",
+                "People are saying the chemical is not good for pregnant women",
+                "The tap breaks every market day",
+                "We only get water twice a week now"]) : "",
+              cat: pickOne(["quality", "access", "rumour", "complaint", "satisfaction"]),
+              urgent: rnd() < 0.07 ? "yes" : "no",
+              landmark: pickOne(["Near the mosque", "Behind the school", "By the market",
+                "Opposite the clinic", "End of the lane"]),
+              lat: SITE_GPS[s.code][0] + (rnd() - 0.5) * 0.010,
+              lon: SITE_GPS[s.code][1] + (rnd() - 0.5) * 0.010 });
+          }
+          const mine = H.filter(h => h.parent === rec.idx);
+          rec.hhVisited = mine.length;
+          rec.hhTested = mine.filter(h => h.pass != null).length;
+          rec.hhPass = mine.filter(h => h.pass).length;
+          rec.under5 = mine.reduce((a, h) => a + h.under5, 0);
+          rec.litres = mine.reduce((a, h) => a + (h.litres || 0), 0);
+          rec.awd = mine.filter(h => h.awd === "yes").reduce((a, h) => a + h.awdN, 0);
+          rec.awdEmerg = mine.filter(h => h.flag === "EMERGENCY").length;
+        }
+        P.push(rec);
+      }
+    }
+  }
+  ST.parent = P; ST.hh = H; ST.sample = true; ST.notes = [];
+  fillSiteSelect(); render();
+}
+
+/* ── file ingestion ─────────────────────────────────────────────────────── */
+async function ingest(files) {
+  const parent = [], hh = [], notes = [];
+  for (const f of files) {
+    const name = f.name || "file";
+    try {
+      if (/\.(xlsx|xls)$/i.test(name)) {
+        if (typeof XLSX === "undefined") {
+          notes.push(`Could not read ${name}: the spreadsheet reader did not load. ` +
+            `Export as CSV from Kobo instead.`);
+          continue;
+        }
+        const wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type: "array" });
+        let used = 0;
+        for (const sn of wb.SheetNames) {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: false, defval: "" });
+          if (!rows.length) continue;
+          if (isHHSheet(rows[0])) { hh.push(...readHH(rows)); used++; }
+          else if (isParentSheet(rows[0])) { parent.push(...readParent(rows)); used++; }
+        }
+        if (!used) notes.push(`No recognised sheet in ${name}.`);
+      } else {
+        const rows = parseCSV(await f.text());
+        if (!rows.length) { notes.push(`${name} is empty.`); continue; }
+        if (isHHSheet(rows[0])) hh.push(...readHH(rows));
+        else if (isParentSheet(rows[0])) parent.push(...readParent(rows));
+        else notes.push(`Could not tell what ${name} contains — no known columns.`);
+      }
+    } catch (e) {
+      notes.push(`Could not read ${name}: ${e && e.message ? e.message : "unreadable file"}.`);
+    }
+  }
+  if (!parent.length && !hh.length) {
+    ST.notes = notes.length ? notes : ["Nothing readable in those files."];
+    setShellState();
+    return;
+  }
+  /* link households to their submission where the export gives a parent key */
+  const byIdx = new Map(parent.map(p => [String(p.idx), p]));
+  for (const h of hh) {
+    const p = byIdx.get(String(h.parent));
+    if (p) { if (!h.site) { h.site = p.site; h.name = p.name; h.lga = p.lga; }
+      if (!h.date) { h.date = p.date; h.t = p.t; }
+      if (h.wpFrc == null) h.wpFrc = p.frc;
+      if (!h.round) h.round = p.round; }
+    if (!h.lga && SITE_BY.has(h.site)) { const s = SITE_BY.get(h.site);
+      h.lga = s.lga; h.name = s.name; }
+  }
+  ST.loaded = new Date();
+  if ((DB.canWrite && DB.api) || lsAvailable()) {
+    ST.pending = { parent, hh, notes };
+    setShellState();
+    return;
+  }
+  commitLocal(parent, hh, notes);
+}
+
+/* keep the upload in this browser (a self-hosted copy has no shared store) */
+function commitRemembered(parent, hh, notes) {
+  const res = lsSave(parent, hh);
+  commitLocal(parent, hh, notes);
+  if (res.ok) {
+    ST.local = { at: res.at };
+    ST.notes = res.trimmed
+      ? [`Kept the most recent ${P_MAX} visit and ${H_MAX} household records in this browser.`]
+      : [];
+  } else {
+    ST.local = null;
+    ST.notes = [res.reason === "full"
+      ? "This browser has no room to remember the data, so it is shown for this visit only."
+      : "This browser will not store data, so it is shown for this visit only."];
+  }
+  render();
+}
+
+/* use the upload on this device only */
+function commitLocal(parent, hh, notes) {
+  ST.parent = parent; ST.hh = hh; ST.sample = false; ST.pending = null;
+  ST.stored = null; ST.local = null;
+  const n = (notes || []).slice();
+  n.unshift(`${parent.length} visit record(s) and ${hh.length} household record(s) read.`);
+  if (!DB.api) n.push("This view has no shared store, so the figures stay on this device.");
+  else if (!DB.canWrite) n.push("Only an Editor of this page can save figures for everyone.");
+  ST.notes = n;
+  fillSiteSelect(); render();
+}
+
+/* publish the upload to everyone with the link */
+async function commitStored(parent, hh) {
+  ST.pending = null; ST.saving = "Writing the first records\u2026"; setShellState();
+  try {
+    const res = await saveToStore(parent, hh, (done, total, label) => {
+      ST.saving = `${done} of ${total} \u2014 ${label}.`; setShellState();
+    });
+    ST.saving = null;
+    ST.parent = parent.slice().sort((a, b) => b.t - a.t).slice(0, P_MAX);
+    ST.hh = hh.slice().sort((a, b) => b.t - a.t).slice(0, H_MAX);
+    ST.sample = false;
+    ST.stored = { at: new Date().toISOString(), rows: res.parentRows + res.hhRows, by: "" };
+    ST.notes = res.trimmed
+      ? [`Kept the most recent ${res.parentRows} visit and ${res.hhRows} household records; ` +
+         `older rows were not saved.`] : [];
+    fillSiteSelect(); render();
+  } catch (e) {
+    ST.saving = null;
+    const code = e && e.code ? e.code : "unavailable";
+    const msg = code === "quota_exceeded"
+      ? "The saved data on this page is full. Remove the saved data and upload a shorter period."
+      : code === "invalid_argument"
+      ? "This page would not accept the records. Upload a shorter period."
+      : code === "not_granted" || code === "revoked"
+      ? "You do not have permission to save data on this page."
+      : "Could not reach the saved data on this page. The figures are shown on this device only.";
+    commitLocal(parent, hh, [msg]);
+  }
+}
+
+/* ── wiring ─────────────────────────────────────────────────────────────── */
+function segWire(id, key, cast) {
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    [...$(id).querySelectorAll("button")].forEach(x =>
+      x.setAttribute("aria-pressed", String(x === b)));
+    ST[key] = cast ? cast(b.dataset.v) : b.dataset.v;
+    if (key === "lga") fillSiteSelect();
+    render();
+  });
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("#f-sev")) return;
+  const b = e.target.closest("button[data-v]"); if (!b) return;
+  ST.sev = b.dataset.v; render();
+});
+segWire("f-lga", "lga");
+segWire("f-days", "days", Number);
+$("f-site").addEventListener("change", e => { ST.site = e.target.value; render(); });
+
+const TABS = ["over", "alert", "points", "hh", "map", "child"];
+function selectTab(key, push) {
+  if (!TABS.includes(key)) key = "over";
+  ST.tab = key;
+  document.querySelectorAll(".tab").forEach(x =>
+    x.setAttribute("aria-selected", String(x.id === "t-" + key)));
+  if (push) { try { location.hash = key === "over" ? "" : key; } catch (e) {} }
+  render();
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  selectTab(t.id.slice(2), true);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}));
+window.addEventListener("hashchange", () => {
+  const h = (location.hash || "").replace(/^#/, "");
+  if (h !== ST.tab) selectTab(h || "over", false);
+});
+
+$("upload-btn").addEventListener("click", () => $("file").click());
+$("sample-btn").addEventListener("click", loadSample);
+$("file").addEventListener("change", e => {
+  if (e.target.files && e.target.files.length) ingest([...e.target.files]);
+  e.target.value = "";
+});
+
+document.addEventListener("click", e => {
+  const c = e.target.closest(".copy");
+  if (c) {
+    const txt = c.dataset.copy || "";
+    const done = () => { const old = c.textContent; c.textContent = "Copied";
+      setTimeout(() => { c.textContent = old; }, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(() => {
+        c.textContent = "Select the text below to copy"; });
+    } else c.textContent = "Select the text below to copy";
+    return;
+  }
+  if (e.target.id === "save-store" && ST.pending) {
+    const p = ST.pending; commitStored(p.parent, p.hh); return;
+  }
+  if (e.target.id === "save-local" && ST.pending) {
+    const p = ST.pending; ST.pending = null; commitRemembered(p.parent, p.hh, p.notes); return;
+  }
+  if (e.target.id === "forget-local") {
+    lsClear(); ST.local = null; ST.parent = []; ST.hh = []; ST.notes = [];
+    fillSiteSelect(); render(); return;
+  }
+  if (e.target.id === "keep-local" && ST.pending) {
+    const p = ST.pending; commitLocal(p.parent, p.hh, p.notes); return;
+  }
+  if (e.target.id === "clear-store") {
+    ST.saving = "Removing the saved data\u2026"; setShellState();
+    clearStore().then(() => { ST.saving = null; ST.parent = []; ST.hh = [];
+      ST.stored = null; ST.notes = []; fillSiteSelect(); render(); })
+      .catch(() => { ST.saving = null; ST.notes = ["Could not remove the saved data."];
+        setShellState(); });
+    return;
+  }
+  if (e.target.id === "empty-upload") $("file").click();
+  if (e.target.id === "empty-sample") loadSample();
+  if (e.target.id === "clear-btn") {
+    ST.parent = []; ST.hh = []; ST.sample = false; ST.notes = [];
+    fillSiteSelect(); render();
+  }
+});
+
+["dragenter", "dragover"].forEach(k => document.addEventListener(k, e => {
+  e.preventDefault(); const d = $("drop"); if (d) d.classList.add("on"); }));
+["dragleave", "drop"].forEach(k => document.addEventListener(k, e => {
+  if (k === "drop") e.preventDefault();
+  const d = $("drop"); if (d) d.classList.remove("on"); }));
+document.addEventListener("drop", e => {
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length)
+    ingest([...e.dataTransfer.files]);
+});
+
+/* tooltip */
+const tip = $("tip");
+document.addEventListener("mousemove", e => {
+  const m = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (!m) { if (tipOn) { tip.hidden = true; tipOn = null; } return; }
+  if (m !== tipOn) { tip.innerHTML = m.getAttribute("data-tip"); tipOn = m; tip.hidden = false; }
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+}, { passive: true });
+document.addEventListener("mouseleave", () => { tip.hidden = true; tipOn = null; });
+
+/* sortable point table */
+document.addEventListener("click", e => {
+  const th = e.target.closest("th.s"); if (!th) return;
+  const k = th.dataset.k;
+  ST.sort = { k, d: ST.sort.k === k && ST.sort.d === "d" ? "a" : "d" };
+  render();
+});
+
+fillSiteSelect();
+loadSample();
+selectTab((location.hash || "").replace(/^#/, "") || "over", false);
+if (typeof claude !== "undefined" && claude && typeof claude.use === "function") {
+  dbBoot().then(() => { if (!DB.api) bootLocalStore(); })
+    .catch(() => { DB.ready = true; DB.status = "off"; bootLocalStore(); setShellState(); });
+} else {
+  DB.status = "off"; DB.ready = true;
+  setTimeout(() => { bootLocalStore(); setShellState(); }, 0);
+}
+
+</script>
+</body>
+</html>
